@@ -3,21 +3,19 @@
 //! The `fade_transparency` system smoothly changes the transparency over time.
 
 use bevy::prelude::*;
-use bevy_panorbit_camera::{PanOrbitCameraPlugin, PanOrbitCamera};
-use std::f32::consts::TAU;
+use bevy::render::mesh::PrimitiveTopology;
 
-// use bevy::input::mouse::{MouseWheel,MouseMotion};
-// use bevy::render::camera::Projection;
-// use bevy::window::PrimaryWindow;
+pub mod pan_orbit_controls;
+use pan_orbit_controls::{PanOrbitCamera, pan_orbit_camera};
 
 fn main() {
     App::new()
         .insert_resource(Msaa::default())
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(AmbientLight {color: Color::WHITE, brightness: 1.0})
-        .add_plugins((DefaultPlugins, PanOrbitCameraPlugin))
+        .add_plugins(DefaultPlugins)
         .add_systems(Startup, setup)
-        .add_systems(Update, axes)
+        .add_systems(Update, (axes, pan_orbit_camera))
         .run();
 }
 
@@ -48,38 +46,32 @@ fn setup(
         transform: Transform::from_xyz(0.0, 0.0, 1000.0).with_scale(Vec3::new(1.0, 1.0, 0.5)),
         ..default()
     });
+    // Spawn a line strip that goes from point to point
+    commands.spawn(MaterialMeshBundle {
+        mesh: meshes.add(Mesh::from(LineStrip {
+            points: vec![
+                Vec3::ZERO,
+                Vec3::new(0.0, 0.0, 10000.0),
+                Vec3::new(15000.0, 0.0, 0.0),
+            ],
+        })),
+        transform: Transform::from_xyz(0.0, 0.0, 0.0),
+        material: materials.add(Color::BLACK.into()),
+        ..default()
+    });
     // Camera
+    let eye = Vec3::new(10e3, -10e3, 10e3);
+    let focus = Vec3::ZERO;
     commands.spawn((
-        // Note we're setting the initial position below with alpha, beta, and radius, hence
-        // we don't set transform on the camera.
-        Camera3dBundle::default(),
+        Camera3dBundle {
+            transform: Transform::from_translation(eye)
+                .looking_at(focus, Vec3::Z),
+            ..Default::default()
+        },
         PanOrbitCamera {
-            // Set focal point (what the camera should look at)
-            focus: Vec3::ZERO,
-            // Set the starting position, relative to focus (overrides camera's transform).
-            alpha: Some(TAU / 8.0),
-            beta: Some(TAU / 8.0),
-            radius: Some(20000.0),
-            // Set limits on rotation and zoom
-            // alpha_upper_limit: Some(TAU / 4.0),
-            // alpha_lower_limit: Some(-TAU / 4.0),
-            // beta_upper_limit: Some(TAU / 3.0),
-            // beta_lower_limit: Some(-TAU / 3.0),
-            // zoom_upper_limit: Some(5.0),
-            // zoom_lower_limit: Some(1.0),
-            // Adjust sensitivity of controls
-            orbit_sensitivity: 1.5,
-            pan_sensitivity: 0.5,
-            zoom_sensitivity: 0.5,
-            // Allow the camera to go upside down
-            allow_upside_down: false,
-            // Change the controls (these match Blender)
-            button_orbit: MouseButton::Left,
-            button_pan: MouseButton::Right,
-            modifier_pan: None,
-            // Reverse the zoom direction
-            reversed_zoom: false,
-            ..default()
+            focus,
+            radius: (focus - eye).length(),
+            ..Default::default()
         },
     ));
 }
@@ -90,133 +82,38 @@ fn axes(mut gizmos: Gizmos) {
     gizmos.line(Vec3::ZERO, Vec3::Z * 500.0, Color::BLUE);   // World Z-axis
 }
 
-// /// Spawn a camera
-// fn spawn_camera(mut commands: Commands) {
-//     let translation = Vec3::new(5e3, -10e3, 10e3);
-//     let radius = translation.length();
-//     commands.spawn((
-//         Camera3dBundle {
-//             transform: Transform::from_translation(translation)
-//                 .looking_at(Vec3::ZERO, Vec3::Z),
-//             ..Default::default()
-//         },
-//         PanOrbitCamera {
-//             radius,
-//             ..Default::default()
-//         },
-//     ));
-// }
 
-// /// Tags an entity as capable of panning and orbiting.
-// #[derive(Component)]
-// struct PanOrbitCamera {
-//     /// The "focus point" to orbit around. It is automatically updated when panning the camera
-//     pub focus: Vec3,
-//     pub radius: f32,
-//     pub upside_down: bool,
-// }
+/// A list of lines with a start and end position
+#[derive(Debug, Clone)]
+pub struct LineList {
+    pub lines: Vec<(Vec3, Vec3)>,
+}
 
-// impl Default for PanOrbitCamera {
-//     fn default() -> Self {
-//         PanOrbitCamera {
-//             focus: Vec3::ZERO,
-//             radius: 5.0,
-//             upside_down: false,
-//         }
-//     }
-// }
+impl From<LineList> for Mesh {
+    fn from(line: LineList) -> Self {
+        // This tells wgpu that the positions are list of lines
+        // where every pair is a start and end point
+        let mut mesh = Mesh::new(PrimitiveTopology::LineList);
 
-// /// Pan the camera with middle mouse click, zoom with scroll wheel, orbit with right mouse click.
-// fn pan_orbit_camera(
-//     mut ev_motion: EventReader<MouseMotion>,
-//     mut ev_scroll: EventReader<MouseWheel>,    
-//     mut orbit_query: Query<(&mut PanOrbitCamera, &mut Transform, &Projection)>,
-//     window: Query<&Window, With<PrimaryWindow>>,
-//     input_mouse: Res<Input<MouseButton>>
-// ) {
-//     // change input mapping for orbit and panning here
-//     let orbit_button = MouseButton::Left;
-//     let pan_button = MouseButton::Right;
+        let vertices: Vec<_> = line.lines.into_iter().flat_map(|(a, b)| [a, b]).collect();
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
+        mesh
+    }
+}
 
-//     let mut pan = Vec2::ZERO;
-//     let mut rotation_move = Vec2::ZERO;
-//     let mut scroll = 0.0;
-//     let mut orbit_button_changed = false;
+/// A list of points that will have a line drawn between each consecutive points
+#[derive(Debug, Clone)]
+pub struct LineStrip {
+    pub points: Vec<Vec3>,
+}
 
-//     if input_mouse.pressed(orbit_button) {
-//         for ev in ev_motion.iter() {
-//             rotation_move += ev.delta;
-//         }
-//     } else if input_mouse.pressed(pan_button) {
-//         // Pan only if we're not rotating at the moment
-//         for ev in ev_motion.iter() {
-//             pan += ev.delta;
-//         }
-//     }
-//     for ev in ev_scroll.iter() {
-//         scroll += ev.y;
-//     }
-//     if input_mouse.just_released(orbit_button) || input_mouse.just_pressed(orbit_button) {
-//         orbit_button_changed = true;
-//     }
+impl From<LineStrip> for Mesh {
+    fn from(line: LineStrip) -> Self {
+        // This tells wgpu that the positions are a list of points
+        // where a line will be drawn between each consecutive point
+        let mut mesh = Mesh::new(PrimitiveTopology::LineStrip);
 
-//     for (mut pan_orbit, mut transform, projection) in orbit_query.iter_mut() {
-//         if orbit_button_changed {
-//             // only check for upside down when orbiting started or ended this frame
-//             // if the camera is "upside" down, panning horizontally would be inverted, so invert the input to make it correct
-//             let up = transform.rotation * Vec3::Z;
-//             pan_orbit.upside_down = up.z <= 0.0;
-//         }
-
-//         // Get primary window size
-        
-//         let window = get_primary_window_size(&window);
-//         let mut any = false;
-//         if rotation_move.length_squared() > 0.0 {
-//             any = true;            
-//             let delta_x = {
-//                 let delta = rotation_move.x / window.x * std::f32::consts::TAU;
-//                 if pan_orbit.upside_down { -delta } else { delta }
-//             };
-//             let delta_y = rotation_move.y / window.y * std::f32::consts::PI;
-//             let yaw = Quat::from_rotation_z(-delta_x);
-//             let roll = Quat::from_rotation_x(-delta_y);
-//             transform.rotation = yaw * transform.rotation; // rotate around global z axis
-//             transform.rotation = transform.rotation * roll; // rotate around local x axis
-//         } else if pan.length_squared() > 0.0 {
-//             any = true;
-//             // make panning distance independent of resolution and FOV,
-//             if let Projection::Perspective(projection) = projection {
-//                 pan *= Vec2::new(projection.fov * projection.aspect_ratio, projection.fov) / window;
-//             }
-//             // translate by local axes
-//             let right = transform.rotation * Vec3::X * -pan.x;
-//             let up = transform.rotation * Vec3::Y * pan.y;
-//             // make panning proportional to distance away from focus point
-//             let translation = (right + up) * pan_orbit.radius;
-//             pan_orbit.focus += translation;
-//         } else if scroll.abs() > 0.0 {
-//             any = true;
-//             pan_orbit.radius -= scroll * pan_orbit.radius * 0.2;
-//             // dont allow zoom to reach zero or you get stuck
-//             pan_orbit.radius = f32::max(pan_orbit.radius, 0.05);
-//         }
-
-//         if any {
-//             // emulating parent/child to make the yaw/z-axis rotation behave like a turntable
-//             // parent = x and z rotation
-//             // child = y-offset
-//             let rot_matrix = Mat3::from_quat(transform.rotation);
-//             transform.translation = pan_orbit.focus + rot_matrix.mul_vec3(Vec3::new(0.0, 0.0, pan_orbit.radius));
-//         }
-//     }
-
-//     // consume any remaining events, so they don't pile up if we don't need them
-//     // (and also to avoid Bevy warning us about not checking events every frame update)
-//     ev_motion.clear();
-// }
-
-// fn get_primary_window_size(window: &Query<&Window, With<PrimaryWindow>>) -> Vec2 {
-//     let window = window.single(); // Get the primary window size
-//     Vec2::new(window.width(), window.height())
-// }
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, line.points);
+        mesh
+    }
+}
