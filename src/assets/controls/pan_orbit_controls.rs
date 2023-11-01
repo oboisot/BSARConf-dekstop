@@ -16,7 +16,7 @@ impl Default for PanOrbitCamera {
     fn default() -> Self {
         PanOrbitCamera {
             focus: Vec3::ZERO,
-            radius: 5.0,
+            radius: 1.0,
             upside_down: false,
         }
     }
