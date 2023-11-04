@@ -446,16 +446,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_easings"
-version = "0.11.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d940ec0558d8ac2a4a755783a4704f71d2d98cbffc9449d191e1bf7aad2ce8a4"
-dependencies = [
- "bevy",
- "interpolation",
-]
-
-[[package]]
 name = "bevy_ecs"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -681,16 +671,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_panorbit_camera"
-version = "0.8.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "dce13f6da088d5b3a065ddce6a354a4dbf760d2d52958e9aa3393bd9a4150f76"
-dependencies = [
- "bevy",
- "bevy_easings",
-]
-
-[[package]]
 name = "bevy_pbr"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -882,7 +862,6 @@ name = "bevy_test"
 version = "0.1.0"
 dependencies = [
  "bevy",
- "bevy_panorbit_camera",
 ]
 
 [[package]]
@@ -1898,12 +1877,6 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
 ]
-
-[[package]]
-name = "interpolation"
-version = "0.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d3b7357d2bbc5ee92f8e899ab645233e43d21407573cceb37fed8bc3dede2c02"
 
 [[package]]
 name = "io-kit-sys"

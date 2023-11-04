@@ -60,8 +60,12 @@ pub fn pan_orbit_camera(
         if orbit_button_changed {
             // only check for upside down when orbiting started or ended this frame
             // if the camera is "upside" down, panning horizontally would be inverted, so invert the input to make it correct
-            let up = transform.rotation * Vec3::Z;
-            pan_orbit.upside_down = up.z <= 0.0;
+            let up = transform.rotation * Vec3::Y;
+            pan_orbit.upside_down = up.z < 0.0;
+            // println!("X =                    {}", transform.rotation * Vec3::X);
+            // println!("Y =                    {}", transform.rotation * Vec3::Y);
+            // println!("Z =                    {}", up);
+            // println!("pan_orbit.upside_down = {}", pan_orbit.upside_down);
         }
 
         let window_scale = primary_window.single(); // Get the primary window size
