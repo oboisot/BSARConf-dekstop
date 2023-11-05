@@ -46,55 +46,27 @@ fn setup(
         material: materials.add(Color::hex("8b8989").unwrap().into()),
         ..default()
     });
-    // opaque sphere
-    const WGS84_EQUATORIAL_RADIUS_M: f64 = 6378137.0;
-    const WGS84_POLAR_RADIUS_M:      f64 = (1.0 - 1.0/298.257223563) * WGS84_EQUATORIAL_RADIUS_M;
-    commands.spawn(PbrBundle {
-        mesh: meshes.add(shape::UVSphere {
-                radius: 1.0,
-                sectors: 360,
-                stacks: 180
-            }.into()),
-        material: materials.add(StandardMaterial{
-            base_color_texture: Some(asset_server.load("earth_texture.png")),
-            base_color: Color::WHITE,
-            ..Default::default()
-        }),
-        transform: Transform::from_xyz(0.0, 0.0, -6500e3)
-            .with_rotation(Quat::from_rotation_z(std::f32::consts::PI))
-            .with_scale(Vec3::new(
-                WGS84_EQUATORIAL_RADIUS_M as f32,
-                WGS84_POLAR_RADIUS_M as f32,
-                WGS84_EQUATORIAL_RADIUS_M as f32
-            )),
-        ..default()
-    });
     // // opaque sphere
+    // const WGS84_EQUATORIAL_RADIUS_M: f64 = 6378137.0;
+    // const WGS84_POLAR_RADIUS_M:      f64 = (1.0 - 1.0/298.257223563) * WGS84_EQUATORIAL_RADIUS_M;
     // commands.spawn(PbrBundle {
-    //     mesh: meshes.add(
-    //         Mesh::try_from(shape::Icosphere {
-    //             radius: 500.0,
-    //             subdivisions: 3,
-    //         })
-    //         .unwrap(),
-    //     ),
-    //     material: materials.add(Color::rgba(0.7, 0.2, 0.1, 0.5).into()),
-    //     transform: Transform::from_xyz(0.0, 0.0, 1000.0).with_scale(Vec3::new(1.0, 1.0, 0.5)),
-    //     ..default()
-    // });
-    // // opaque cylinder
-    // commands.spawn(PbrBundle {
-    //     mesh: meshes.add(
-    //         Mesh::try_from(shape::Cylinder {
-    //             radius: 250.0,
-    //             height: 300.0,
-    //             resolution: 10u32,
-    //             segments: 1u32
-    //         })
-    //         .unwrap(),
-    //     ),
-    //     material: materials.add(Color::rgba(1.0, 1.0, 1.0, 0.75).into()),
-    //     transform: Transform::from_rotation(Quat::from_rotation_x(std::f32::consts::FRAC_PI_2)),
+    //     mesh: meshes.add(shape::UVSphere {
+    //             radius: 1.0,
+    //             sectors: 360,
+    //             stacks: 180
+    //         }.into()),
+    //     material: materials.add(StandardMaterial{
+    //         base_color_texture: Some(asset_server.load("world.200405.3x5400x2700.png")),
+    //         base_color: Color::WHITE,
+    //         ..Default::default()
+    //     }),
+    //     transform: Transform::from_xyz(0.0, 0.0, -6500e3)
+    //         .with_rotation(Quat::from_rotation_z(std::f32::consts::PI))
+    //         .with_scale(Vec3::new(
+    //             WGS84_EQUATORIAL_RADIUS_M as f32,
+    //             WGS84_POLAR_RADIUS_M as f32,
+    //             WGS84_EQUATORIAL_RADIUS_M as f32
+    //         )),
     //     ..default()
     // });
     // Camera
