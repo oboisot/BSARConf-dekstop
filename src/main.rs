@@ -12,19 +12,21 @@ fn main() {
         .insert_resource(Msaa::default())
         .insert_resource(ClearColor(Color::BLACK))
         .insert_resource(AmbientLight {color: Color::WHITE, brightness: 1.0})
-        .add_plugins(DefaultPlugins.set(
-            WindowPlugin {
-                primary_window: Some(Window {
-                    position: WindowPosition::Automatic,
-                    resolution: [800.0, 600.0].into(),
-                    title: "BSAR Configurator".to_string(),
-                    ..Default::default()
-                    }),
-                ..default()
-            }
-            ).set(
+        .add_plugins(DefaultPlugins
+            .set(
+                WindowPlugin {
+                    primary_window: Some(Window {
+                        position: WindowPosition::Automatic,
+                        resolution: [800.0, 600.0].into(),
+                        title: "BSAR Configurator".to_string(),
+                        ..Default::default()
+                        }),
+                    ..default()
+                }
+            )
+            .set(
                 AssetPlugin {
-                    asset_folder: "./textures".to_string(),
+                    file_path: "assets".to_string(),
                     ..Default::default()
                 }
             )
@@ -38,7 +40,7 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    asset_server: Res<AssetServer>
+    // asset_server: Res<AssetServer>
 ) {
     // opaque plane, uses `alpha_mode: Opaque` by default
     commands.spawn(PbrBundle {
@@ -56,7 +58,7 @@ fn setup(
     //             stacks: 180
     //         }.into()),
     //     material: materials.add(StandardMaterial{
-    //         base_color_texture: Some(asset_server.load("world.200405.3x5400x2700.png")),
+    //         base_color_texture: Some(asset_server.load("textures/world.200405.3x5400x2700.png")),
     //         base_color: Color::WHITE,
     //         ..Default::default()
     //     }),
