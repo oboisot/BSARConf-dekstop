@@ -6,6 +6,7 @@ use bevy::prelude::*;
 
 mod assets;
 use assets::controls::pan_orbit_controls::{PanOrbitCamera, pan_orbit_camera};
+use assets::mesh::antenna_cone::Cone;
 
 fn main() {
     App::new()
@@ -46,6 +47,16 @@ fn setup(
     commands.spawn(PbrBundle {
         mesh: meshes.add(shape::Quad::new(Vec2::splat(30000.0)).into()),
         material: materials.add(Color::hex("8b8989").unwrap().into()),
+        ..default()
+    });
+    // opaque plane, uses `alpha_mode: Opaque` by default
+    commands.spawn(PbrBundle {
+        mesh: meshes.add(Cone {
+                radius: 500.0,
+                height: 1000.0,
+                ..Default::default()
+            }.into()),
+        material: materials.add(Color::RED.into()),
         ..default()
     });
     // // opaque sphere
