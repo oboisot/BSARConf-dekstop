@@ -1,7 +1,8 @@
 use bevy::render::mesh::{Indices, Mesh, PrimitiveTopology};
 
 /// A cone which stands on the YZ plane with
-/// vertical axis in the X axis.
+/// vertical axis in the X axis and cone apex at 
+/// the origin.
 #[derive(Clone, Copy, Debug)]
 pub struct Cone {
     /// Base radius of the cone in the XY plane.
@@ -55,10 +56,10 @@ impl From<Cone> for Mesh {
                 vertices.push([x, y, z]);
 
                 // Normal
-                let nx = -sin_alpha;
-                let ny = cos_alpha * cos_theta;
-                let nz = cos_alpha * sin_theta;                
-                normals.push([nx, ny, nz]);
+                let x = -sin_alpha;
+                let y = cos_alpha * cos_theta;
+                let z = cos_alpha * sin_theta;                
+                normals.push([x, y, z]);
 
                 // uv
                 uvs.push([u, v]);
