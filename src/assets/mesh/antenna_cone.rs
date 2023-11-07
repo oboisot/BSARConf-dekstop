@@ -9,9 +9,9 @@ pub struct Cone {
     pub radius: f32,
     /// Height of the cone in the Z axis.
     pub height: f32,
-    /// Number of radial segments of the cone circle(s)
+    /// Number of radial segments of the cone circle(s). Must be greater or equal to 3.
     pub radial_segments: usize,
-    /// Number of height segments
+    /// Number of height segments. Must be greater or equal to 1.
     pub height_segments: usize,
 }
 
@@ -27,11 +27,16 @@ impl Default for Cone {
 }
 
 impl From<Cone> for Mesh {
-    fn from(cone: Cone) -> Self {
+    fn from(cone: Cone) -> Self {        
+        debug_assert!(cone.radius > 0.0);
+        debug_assert!(cone.height > 0.0);
+        debug_assert!(cone.radial_segments >= 3);
+        debug_assert!(cone.height_segments >= 1);
+
         let mut vertices: Vec<[f32; 3]> = Vec::with_capacity(cone.radial_segments * cone.height_segments);
         let mut normals: Vec<[f32; 3]> = Vec::with_capacity(cone.radial_segments * cone.height_segments);
         let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(cone.radial_segments * cone.height_segments);
-        let mut indices: Vec<u32> = Vec::with_capacity(cone.radial_segments * cone.height_segments * 2 * 3);
+        let mut indices: Vec<u32> = Vec::with_capacity(cone.radial_segments * (1 + 2 * (cone.height_segments - 1)));
 
         // Helper variables
         let inv_height_segments = 1.0 / (cone.height_segments as f32);
@@ -64,6 +69,12 @@ impl From<Cone> for Mesh {
                 // uv
                 uvs.push([u, v]);
             }
+        }
+
+        for i in 0..cone.radial_segments {
+            indices.push(0);
+            indices.push(i as u32 + 1);
+            indices.push(i as u32 + 2);
         }
 
         Mesh::new(PrimitiveTopology::TriangleList)
