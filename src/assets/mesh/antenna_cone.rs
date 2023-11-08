@@ -33,23 +33,27 @@ impl From<Cone> for Mesh {
         debug_assert!(cone.radial_segments >= 3, "Cone 'radial_segments' must be greater or equal to 3");
         debug_assert!(cone.height_segments >= 1, "Cone 'height_segments' must be greater or equal to 1");
 
-        let num_vertices = cone.radial_segments * cone.height_segments + 2;
-        let num_indices  = (cone.radial_segments * (1 + 2 * (cone.height_segments - 1))) * 3;
+        // let num_vertices = cone.radial_segments * cone.height_segments + 1 + 1; //note: +1 for uvs closing
+        let num_vertices = (cone.radial_segments + 1) * cone.height_segments + 1; //note: +1 for uvs closing
+        let num_indices  = 3 * cone.radial_segments * (1 + 2 * (cone.height_segments - 1));
 
         let mut vertices: Vec<[f32; 3]> = Vec::with_capacity(num_vertices as usize);
         let mut normals:  Vec<[f32; 3]> = Vec::with_capacity(num_vertices as usize);
         let mut uvs:      Vec<[f32; 2]> = Vec::with_capacity(num_vertices as usize);
-        let mut indices:  Vec<u32>      = Vec::with_capacity(num_indices as usize);       
+        let mut indices:  Vec<u32>      = Vec::with_capacity(num_indices as usize);
+
+        println!("num_indices:     {}", num_indices);
 
         // Helper variables
+            // Inverse segments numbers
         let inv_height_segments = 1.0 / (cone.height_segments as f32);
         let inv_radial_segments = 1.0 / (cone.radial_segments as f32);
-
-        let inv_radial_length = 1.0 / (cone.height.hypot(cone.radius)); // 1/sqrt(H² + R²)
+            // loop steps
         let height_step = cone.height * inv_height_segments;
-        // let radial_step = cone.radius * inv_radial_segments;
         let theta_step = std::f32::consts::TAU * inv_radial_segments;
+            // 
         let tan_alpha  = cone.radius / cone.height; // Cone tangent of its half opening angle (= sin_alpha / cos_alpha)
+        let inv_radial_length = 1.0 / (cone.height.hypot(cone.radius)); // 1/sqrt(H² + R²)
         let cos_alpha  = cone.height * inv_radial_length;
         let sin_alpha  = cone.radius * inv_radial_length;
 
@@ -60,7 +64,7 @@ impl From<Cone> for Mesh {
         //
         for k in 1..=cone.height_segments {
             let v = (k as f32) * inv_height_segments; // (u,V) coordinate
-            let height = v * height_step; // radius of the current height segment
+            let height = (k as f32) * height_step; // radius of the current height segment
             let radius = tan_alpha * height;
 
             println!("height: {}", height);
@@ -83,14 +87,32 @@ impl From<Cone> for Mesh {
             }
         }
 
-        for i in 1..cone.radial_segments {
+        // indices
+        for i in 1..=cone.radial_segments {
             indices.extend_from_slice(&[0, i, i + 1]);
         }
-        indices.extend_from_slice(&[0, cone.radial_segments, 1]); // Last triangle
+        
+        if cone.height_segments >= 2 {
+            for k in 1..=cone.height_segments {
+                for i in 0..=cone.radial_segments {
+                    let ring = k + i;
+                    let next_ring = ring + cone.radial_segments + 1;
+                    indices.extend_from_slice(&[
+                        ring,
+                        next_ring,
+                        ring + 1,
+                        ring + 1,
+                        next_ring,
+                        next_ring + 1     
+                    ]);
+                }
+            }
+        }
 
         println!("indices.capacity(): {}", indices.capacity());
         println!("indices.size():     {}", indices.len());
         println!("indices:            {:?}", indices);
+        println!("vertices.capacity():{}", vertices.capacity());
         println!("vertices.len():     {}", vertices.len());
         println!("vertices:           {:?}", vertices);
         println!("uvs.len():          {}", uvs.len());

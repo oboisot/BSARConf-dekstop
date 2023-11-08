@@ -56,13 +56,14 @@ fn setup(
                 radius: 500.0,
                 height: 1000.0,
                 radial_segments: 3,
-                ..Default::default()
+                height_segments: 2
             }.into()),
         // material: materials.add(Color::RED.into()),
         material: materials.add(StandardMaterial{
             base_color: Color::RED,
             // double_sided: true,
-            cull_mode: Some(Face::Front),
+            // cull_mode: Some(Face::Front),
+            cull_mode: None,
             ..Default::default()
         }),
         ..Default::default()
