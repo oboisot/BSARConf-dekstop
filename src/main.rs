@@ -3,6 +3,7 @@
 //! The `fade_transparency` system smoothly changes the transparency over time.
 
 use bevy::prelude::*;
+use bevy::render::render_resource::Face;
 
 mod assets;
 use assets::controls::pan_orbit_controls::{PanOrbitCamera, pan_orbit_camera};
@@ -47,17 +48,24 @@ fn setup(
     commands.spawn(PbrBundle {
         mesh: meshes.add(shape::Quad::new(Vec2::splat(30000.0)).into()),
         material: materials.add(Color::hex("8b8989").unwrap().into()),
-        ..default()
+        ..Default::default()
     });
     // opaque plane, uses `alpha_mode: Opaque` by default
     commands.spawn(PbrBundle {
         mesh: meshes.add(Cone {
                 radius: 500.0,
                 height: 1000.0,
+                radial_segments: 3,
                 ..Default::default()
             }.into()),
-        material: materials.add(Color::RED.into()),
-        ..default()
+        // material: materials.add(Color::RED.into()),
+        material: materials.add(StandardMaterial{
+            base_color: Color::RED,
+            // double_sided: true,
+            cull_mode: Some(Face::Front),
+            ..Default::default()
+        }),
+        ..Default::default()
     });
     // // opaque sphere
     // const WGS84_EQUATORIAL_RADIUS_M: f64 = 6378137.0;

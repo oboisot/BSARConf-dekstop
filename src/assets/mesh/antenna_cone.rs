@@ -10,72 +10,91 @@ pub struct Cone {
     /// Height of the cone in the Z axis.
     pub height: f32,
     /// Number of radial segments of the cone circle(s). Must be greater or equal to 3.
-    pub radial_segments: usize,
+    pub radial_segments: u32,
     /// Number of height segments. Must be greater or equal to 1.
-    pub height_segments: usize,
+    pub height_segments: u32,
 }
 
 impl Default for Cone {
     fn default() -> Self {
         Self {
-            radius: 1.0f32,
-            height: 1.0f32,
-            radial_segments: 36usize,
-            height_segments: 1usize,
+            radius: 1.0,
+            height: 1.0,
+            radial_segments: 36,
+            height_segments: 1,
         }
     }
 }
 
 impl From<Cone> for Mesh {
     fn from(cone: Cone) -> Self {        
-        debug_assert!(cone.radius > 0.0);
-        debug_assert!(cone.height > 0.0);
-        debug_assert!(cone.radial_segments >= 3);
-        debug_assert!(cone.height_segments >= 1);
+        debug_assert!(cone.radius > 0.0, "Cone 'radius' must be strictly positive");
+        debug_assert!(cone.height > 0.0, "Cone 'height' must be strictly positive");
+        debug_assert!(cone.radial_segments >= 3, "Cone 'radial_segments' must be greater or equal to 3");
+        debug_assert!(cone.height_segments >= 1, "Cone 'height_segments' must be greater or equal to 1");
 
-        let mut vertices: Vec<[f32; 3]> = Vec::with_capacity(cone.radial_segments * cone.height_segments);
-        let mut normals: Vec<[f32; 3]> = Vec::with_capacity(cone.radial_segments * cone.height_segments);
-        let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(cone.radial_segments * cone.height_segments);
-        let mut indices: Vec<u32> = Vec::with_capacity(cone.radial_segments * (1 + 2 * (cone.height_segments - 1)));
+        let num_vertices = cone.radial_segments * cone.height_segments + 2;
+        let num_indices  = (cone.radial_segments * (1 + 2 * (cone.height_segments - 1))) * 3;
+
+        let mut vertices: Vec<[f32; 3]> = Vec::with_capacity(num_vertices as usize);
+        let mut normals:  Vec<[f32; 3]> = Vec::with_capacity(num_vertices as usize);
+        let mut uvs:      Vec<[f32; 2]> = Vec::with_capacity(num_vertices as usize);
+        let mut indices:  Vec<u32>      = Vec::with_capacity(num_indices as usize);       
 
         // Helper variables
         let inv_height_segments = 1.0 / (cone.height_segments as f32);
         let inv_radial_segments = 1.0 / (cone.radial_segments as f32);
-        let theta_step = std::f32::consts::TAU * inv_radial_segments;
+
         let inv_radial_length = 1.0 / (cone.height.hypot(cone.radius)); // 1/sqrt(H² + R²)
-        let cos_alpha = cone.height * inv_radial_length;
-        let sin_alpha = cone.radius * inv_radial_length;
+        let height_step = cone.height * inv_height_segments;
+        // let radial_step = cone.radius * inv_radial_segments;
+        let theta_step = std::f32::consts::TAU * inv_radial_segments;
+        let tan_alpha  = cone.radius / cone.height; // Cone tangent of its half opening angle (= sin_alpha / cos_alpha)
+        let cos_alpha  = cone.height * inv_radial_length;
+        let sin_alpha  = cone.radius * inv_radial_length;
 
-        for k in 0..cone.height_segments {
+        // Apex
+        vertices.push([0.0, 0.0, 0.0]);
+        normals.push([-1.0, 0.0, 0.0]);
+        uvs.push([0.0, 0.0]);
+        //
+        for k in 1..=cone.height_segments {
             let v = (k as f32) * inv_height_segments; // (u,V) coordinate
-            let height_radius = v * cone.radius; // radius of the current height segment
+            let height = v * height_step; // radius of the current height segment
+            let radius = tan_alpha * height;
 
-            for i in 0..cone.radial_segments {
+            println!("height: {}", height);
+            println!("radius: {}", radius);
+
+            for i in 0..=cone.radial_segments {
                 let u = (i as f32) * inv_radial_segments; // (U,v) coordinate
-                let (sin_theta, cos_theta) = ((i as f32) * theta_step).sin_cos();
+                let (sin, cos) = ((i as f32) * theta_step).sin_cos();
 
                 // Vertex
-                let x = height_radius;
-                let y = height_radius * cos_theta;
-                let z = height_radius * sin_theta;
-                vertices.push([x, y, z]);
-
-                // Normal
-                let x = -sin_alpha;
-                let y = cos_alpha * cos_theta;
-                let z = cos_alpha * sin_theta;                
-                normals.push([x, y, z]);
-
+                vertices.push([height,
+                               radius * cos,
+                               radius * sin]);
+                // Normal            
+                normals.push([-sin_alpha,
+                              cos_alpha * cos,
+                              cos_alpha * sin]);
                 // uv
                 uvs.push([u, v]);
             }
         }
 
-        for i in 0..cone.radial_segments {
-            indices.push(0);
-            indices.push(i as u32 + 1);
-            indices.push(i as u32 + 2);
+        for i in 1..cone.radial_segments {
+            indices.extend_from_slice(&[0, i, i + 1]);
         }
+        indices.extend_from_slice(&[0, cone.radial_segments, 1]); // Last triangle
+
+        println!("indices.capacity(): {}", indices.capacity());
+        println!("indices.size():     {}", indices.len());
+        println!("indices:            {:?}", indices);
+        println!("vertices.len():     {}", vertices.len());
+        println!("vertices:           {:?}", vertices);
+        println!("uvs.len():          {}", uvs.len());
+        println!("uvs:                {:?}", uvs);
 
         Mesh::new(PrimitiveTopology::TriangleList)
             .with_indices(Some(Indices::U32(indices)))
