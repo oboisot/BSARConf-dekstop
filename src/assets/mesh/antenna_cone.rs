@@ -13,7 +13,7 @@ pub struct Cone {
     pub radial_segments: u32,
     /// Number of height segments. Must be greater or equal to 1.
     pub height_segments: u32,
-    ///
+    /// If true, the cone will be drawn as wireframe
     pub wireframe: bool
 }
 
@@ -37,7 +37,11 @@ impl From<Cone> for Mesh {
         debug_assert!(cone.height_segments >= 1, "Cone 'height_segments' must be greater or equal to 1");
 
         let num_vertices = (cone.radial_segments + 1) * cone.height_segments + 1;
-        let num_indices  = 3 * cone.radial_segments * (1 + 2 * (cone.height_segments - 1));
+        let num_indices  = if cone.wireframe {
+            2 * ((num_vertices - 1) + cone.height_segments * (cone.radial_segments - 1))
+        } else {
+            3 * cone.radial_segments * (1 + 2 * (cone.height_segments - 1))
+        };
         let mut vertices: Vec<[f32; 3]> = Vec::with_capacity(num_vertices as usize);
         let mut normals:  Vec<[f32; 3]> = Vec::with_capacity(num_vertices as usize);
         let mut uvs:      Vec<[f32; 2]> = Vec::with_capacity(num_vertices as usize);
@@ -85,8 +89,16 @@ impl From<Cone> for Mesh {
 
         // indices
         if cone.wireframe {
-            for i in 0..num_vertices {
-                indices.push(i);
+            for i in 0..num_vertices - 1 {
+                indices.extend_from_slice(&[i, i+1]);
+            }
+
+            let nrs = cone.radial_segments + 1;
+            for i in 2..=cone.radial_segments {
+                indices.extend_from_slice(&[0, i]);
+                for k in 0..cone.height_segments - 1 {
+                    indices.extend_from_slice(&[i + k * nrs, i + (k + 1) * nrs]);
+                }
             }
         } else {
             for i in 1..=cone.radial_segments {
@@ -124,7 +136,7 @@ impl From<Cone> for Mesh {
         // println!("uvs:                {:?}", uvs);
 
         let mut mesh = if cone.wireframe {
-            Mesh::new(PrimitiveTopology::LineStrip)
+            Mesh::new(PrimitiveTopology::LineList)
         } else {
             Mesh::new(PrimitiveTopology::TriangleList)
         };

@@ -57,7 +57,7 @@ fn setup(
                     radius: 500.0,
                     height: 1000.0,
                     radial_segments: 360,
-                    height_segments: 1,
+                    height_segments: 18,
                     wireframe: false
                 }.into()),
             // material: materials.add(Color::RED.into()),
