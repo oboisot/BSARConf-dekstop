@@ -13,6 +13,8 @@ pub struct Cone {
     pub radial_segments: u32,
     /// Number of height segments. Must be greater or equal to 1.
     pub height_segments: u32,
+    ///
+    pub wireframe: bool
 }
 
 impl Default for Cone {
@@ -22,6 +24,7 @@ impl Default for Cone {
             height: 1.0,
             radial_segments: 36,
             height_segments: 1,
+            wireframe: false
         }
     }
 }
@@ -33,16 +36,12 @@ impl From<Cone> for Mesh {
         debug_assert!(cone.radial_segments >= 3, "Cone 'radial_segments' must be greater or equal to 3");
         debug_assert!(cone.height_segments >= 1, "Cone 'height_segments' must be greater or equal to 1");
 
-        // let num_vertices = cone.radial_segments * cone.height_segments + 1 + 1; //note: +1 for uvs closing
-        let num_vertices = (cone.radial_segments + 1) * cone.height_segments + 1; //note: +1 for uvs closing
+        let num_vertices = (cone.radial_segments + 1) * cone.height_segments + 1;
         let num_indices  = 3 * cone.radial_segments * (1 + 2 * (cone.height_segments - 1));
-
         let mut vertices: Vec<[f32; 3]> = Vec::with_capacity(num_vertices as usize);
         let mut normals:  Vec<[f32; 3]> = Vec::with_capacity(num_vertices as usize);
         let mut uvs:      Vec<[f32; 2]> = Vec::with_capacity(num_vertices as usize);
         let mut indices:  Vec<u32>      = Vec::with_capacity(num_indices as usize);
-
-        println!("num_indices:     {}", num_indices);
 
         // Helper variables
             // Inverse segments numbers
@@ -61,14 +60,11 @@ impl From<Cone> for Mesh {
         vertices.push([0.0, 0.0, 0.0]);
         normals.push([-1.0, 0.0, 0.0]);
         uvs.push([0.0, 0.0]);
-        //
+        // vertices, normals and uvs
         for k in 1..=cone.height_segments {
             let v = (k as f32) * inv_height_segments; // (u,V) coordinate
             let height = (k as f32) * height_step; // radius of the current height segment
             let radius = tan_alpha * height;
-
-            println!("height: {}", height);
-            println!("radius: {}", radius);
 
             for i in 0..=cone.radial_segments {
                 let u = (i as f32) * inv_radial_segments; // (U,v) coordinate
@@ -88,40 +84,55 @@ impl From<Cone> for Mesh {
         }
 
         // indices
-        for i in 1..=cone.radial_segments {
-            indices.extend_from_slice(&[0, i, i + 1]);
-        }
-        
-        if cone.height_segments >= 2 {
-            for k in 1..=cone.height_segments {
-                for i in 0..=cone.radial_segments {
-                    let ring = k + i;
-                    let next_ring = ring + cone.radial_segments + 1;
-                    indices.extend_from_slice(&[
-                        ring,
-                        next_ring,
-                        ring + 1,
-                        ring + 1,
-                        next_ring,
-                        next_ring + 1     
-                    ]);
+        if cone.wireframe {
+            for i in 0..num_vertices {
+                indices.push(i);
+            }
+        } else {
+            for i in 1..=cone.radial_segments {
+                indices.extend_from_slice(&[0, i, i + 1]);
+            }
+            
+            if cone.height_segments >= 2 {
+                let ring_step     = cone.radial_segments + 1;
+                let mut ring      = 1;
+                let mut next_ring = ring + ring_step;
+                for _k in 1..cone.height_segments {            
+                    for i in 0..cone.radial_segments {
+                        indices.extend_from_slice(&[
+                            ring + i,
+                            next_ring + i,
+                            ring + 1 + i,
+                            ring + 1 + i,
+                            next_ring + i,
+                            next_ring + 1 + i     
+                        ]);
+                    }
+                    ring       = next_ring;
+                    next_ring += cone.radial_segments + 1;
                 }
             }
         }
 
-        println!("indices.capacity(): {}", indices.capacity());
-        println!("indices.size():     {}", indices.len());
-        println!("indices:            {:?}", indices);
-        println!("vertices.capacity():{}", vertices.capacity());
-        println!("vertices.len():     {}", vertices.len());
-        println!("vertices:           {:?}", vertices);
-        println!("uvs.len():          {}", uvs.len());
-        println!("uvs:                {:?}", uvs);
+        // println!("indices.capacity(): {}", indices.capacity());
+        // println!("indices.size():     {}", indices.len());
+        // println!("indices:            {:?}", indices);
+        // println!("vertices.capacity():{}", vertices.capacity());
+        // println!("vertices.len():     {}", vertices.len());
+        // println!("vertices:           {:?}", vertices);
+        // println!("uvs.len():          {}", uvs.len());
+        // println!("uvs:                {:?}", uvs);
 
-        Mesh::new(PrimitiveTopology::TriangleList)
-            .with_indices(Some(Indices::U32(indices)))
-            .with_inserted_attribute(Mesh::ATTRIBUTE_POSITION, vertices)
-            .with_inserted_attribute(Mesh::ATTRIBUTE_NORMAL, normals)
-            .with_inserted_attribute(Mesh::ATTRIBUTE_UV_0, uvs)
+        let mut mesh = if cone.wireframe {
+            Mesh::new(PrimitiveTopology::LineStrip)
+        } else {
+            Mesh::new(PrimitiveTopology::TriangleList)
+        };
+
+        mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+        mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+        mesh.set_indices(Some(Indices::U32(indices)));
+        mesh
     }
 }

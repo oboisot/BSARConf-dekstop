@@ -55,17 +55,20 @@ fn setup(
         mesh: meshes.add(Cone {
                 radius: 500.0,
                 height: 1000.0,
-                radial_segments: 3,
-                height_segments: 2
+                radial_segments: 360,
+                height_segments: 180,
+                wireframe: true
             }.into()),
         // material: materials.add(Color::RED.into()),
         material: materials.add(StandardMaterial{
-            base_color: Color::RED,
+            base_color: Color::WHITE,
             // double_sided: true,
             // cull_mode: Some(Face::Front),
             cull_mode: None,
             ..Default::default()
         }),
+        transform: Transform::from_scale(Vec3::new(1.0, 0.25, 2.0))
+            .with_rotation(Quat::from_mat3(&Mat3 { x_axis: Vec3::Y, y_axis: Vec3::X, z_axis: -Vec3::Z })),
         ..Default::default()
     });
     // // opaque sphere
