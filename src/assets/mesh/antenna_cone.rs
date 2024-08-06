@@ -1,4 +1,4 @@
-use bevy::render::mesh::{Indices, Mesh, PrimitiveTopology};
+use bevy::render::{mesh::{Indices, Mesh, PrimitiveTopology}, render_asset::RenderAssetUsages};
 
 /// A cone which stands on the YZ plane with
 /// vertical axis in the X axis and cone apex at 
@@ -136,15 +136,15 @@ impl From<Cone> for Mesh {
         // println!("uvs:                {:?}", uvs);
 
         let mut mesh = if cone.wireframe {
-            Mesh::new(PrimitiveTopology::LineList)
+            Mesh::new(PrimitiveTopology::LineList, RenderAssetUsages::RENDER_WORLD)
         } else {
-            Mesh::new(PrimitiveTopology::TriangleList)
+            Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::RENDER_WORLD)
         };
 
         mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices);
         mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
         mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
-        mesh.set_indices(Some(Indices::U32(indices)));
+        mesh.insert_indices(Indices::U32(indices));
         mesh
     }
 }
