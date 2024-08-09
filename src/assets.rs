@@ -1,2 +1,2 @@
-// pub mod controls;
+pub mod controls;
 pub mod mesh;
