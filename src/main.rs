@@ -1,24 +1,17 @@
-//! Demonstrates how to use transparency in 3D.
-//! Shows the effects of different blend modes.
-//! The `fade_transparency` system smoothly changes the transparency over time.
-
 use bevy::{
     prelude::*,
-    render::mesh::ConeAnchor,
-    render::render_resource::Face
+    render::{mesh::ConeAnchor, render_resource::Face}
 };
-// use bevy::math::prelude::Plane3d;
-// use bevy::render::render_resource::Face;
 
 mod assets;
-// use assets::mesh::antenna_cone::Cone as AntennaCone;
-use assets::controls::pan_orbit_controls::{PanOrbitCameraBundle, PanOrbitState, pan_orbit_camera};
+use assets::mesh::antenna_cone::Cone as AntennaCone;
+use assets::controls::pan_orbit_controls::{pan_orbit_camera, PanOrbitCameraBundle, PanOrbitState};
 
 fn main() {
     App::new()
         .insert_resource(Msaa::default())
         .insert_resource(ClearColor(Color::BLACK))
-        .insert_resource(AmbientLight {color: Color::WHITE, brightness: 500.0})
+        .insert_resource(AmbientLight{color: Color::WHITE, brightness: 500.0})
         .add_plugins(DefaultPlugins
             .set(
                 WindowPlugin {
@@ -62,13 +55,62 @@ fn setup(
                 Plane3d::new(Vec3::Z, Vec2::splat(15000.0)).mesh().subdivisions(0)
             ),
             material: materials.add(StandardMaterial {
-                base_color: Color::srgb(0.54, 0.54, 0.54),
-                perceptual_roughness: 1.0,
+                base_color: Color::srgb_u8(139, 137, 137),
                 ..default()
             }),
             ..Default::default()
         }
     );
+    // Antenna cone
+    let ac_radius_m = 500.0f32;
+    let ac_length_m = 1000.0f32;
+    let elv_deg = 18.0f32;
+    let azi_deg = 5.0f32;
+
+    commands.spawn(
+        PbrBundle {
+            mesh: meshes.add(AntennaCone {
+                radius: 1.0,
+                height: 1.0,
+                radial_segments: 360,
+                height_segments: 18,
+                wireframe: true
+            }),
+            material: materials.add(StandardMaterial {
+                base_color: Color::WHITE,
+                ..Default::default()
+            }),
+            transform: Transform::from_scale(Vec3::new(ac_length_m, ac_radius_m, ac_radius_m))
+                .with_translation(Vec3::new(-1000.0, 0.0, 3000.0))
+                .with_rotation(
+                    Quat::from_mat3(&Mat3{
+                        x_axis: Vec3::Y,
+                        y_axis: Vec3::X,
+                        z_axis: -Vec3::Z
+                    })
+                ),
+            ..Default::default()
+        }
+    ).with_children(|parent| {
+        parent.spawn(
+            PbrBundle {
+                mesh: meshes.add(AntennaCone {
+                    radius: 1.0,
+                    height: 1.0,
+                    radial_segments: 360,
+                    height_segments: 18,
+                    wireframe: false
+                }),
+                material: materials.add(StandardMaterial {
+                    base_color: Color::srgba(0.0, 0.0, 0.0, 0.5),
+                    alpha_mode: AlphaMode::Blend,
+                    ..Default::default()
+                }),
+                transform: Transform::from_scale(Vec3::new(1.0, 0.3, 1.0)),
+                ..Default::default()
+            }
+        );
+    });
     // Cone
     commands.spawn(
         PbrBundle {
@@ -78,15 +120,12 @@ fn setup(
             }.mesh()
              .resolution(360)
              .anchor(ConeAnchor::Tip)),
-            material: materials.add(StandardMaterial{
-                base_color: Color::srgba(1.0, 1.0, 1.0, 0.25),
-                double_sided: false,
-                cull_mode: Some(Face::Back),
+            // material: materials.add(Color::srgba(1.0, 1.0, 1.0, 0.1)),
+            material: materials.add(StandardMaterial {
+                base_color: Color::srgba(1.0, 0.0, 0.0, 0.5),
+                alpha_mode: AlphaMode::Blend,
                 ..Default::default()
             }),
-            // transform: Transform::from_scale(Vec3::new(1.0, 0.25, 2.0))
-            //     .with_rotation(Quat::from_mat3(&Mat3 { x_axis: Vec3::Y, y_axis: Vec3::X, z_axis: -Vec3::Z }))
-            //     .with_translation(Vec3::new(-1000.0, 0.0, 1000.0)),
             ..Default::default()
         }//.with_children(|parent| {
         //     parent.spawn(PbrBundle {
@@ -105,16 +144,26 @@ fn setup(
         //     });
         // });
     );
+
     // Camera
     commands.spawn(PanOrbitCameraBundle::default());
 }
 
 fn axes(mut gizmos: Gizmos) {
-    const ORIGIN: Vec3 = Vec3{ x: 0.0, y: 0.0, z: 0.0 };
     const X: Vec3 = Vec3{ x: 500.0, y:   0.0, z: 0.0 };
     const Y: Vec3 = Vec3{ x:   0.0, y: 500.0, z: 0.0 };
     const Z: Vec3 = Vec3{ x:   0.0, y:   0.0, z: 500.0 };
-    gizmos.line(ORIGIN, X, Srgba::RED);    // World X-axis
-    gizmos.line(ORIGIN, Y, Srgba::GREEN);  // World Y-axis
-    gizmos.line(ORIGIN, Z, Srgba::BLUE);   // World Z-axis
+    gizmos.arrow(Vec3::ZERO, X, Srgba::RED);    // World X-axis
+    gizmos.arrow(Vec3::ZERO, Y, Srgba::GREEN);  // World Y-axis
+    gizmos.arrow(Vec3::ZERO, Z, Srgba::BLUE);   // World Z-axis
+
+    const CELL_COUNT: UVec2 = UVec2{ x: 60, y: 60};
+    const SPACING: Vec2 = Vec2{ x: 500.0, y: 500.0 };
+    gizmos.grid(
+        Vec3::ZERO,
+        Quat::IDENTITY,
+        CELL_COUNT,
+        SPACING,
+        Color::srgb_u8(83, 104, 120)
+    ).outer_edges();
 }
