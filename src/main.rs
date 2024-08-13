@@ -1,17 +1,18 @@
 use bevy::{
     prelude::*,
-    render::{mesh::ConeAnchor, render_resource::Face}
+    render::mesh::ConeAnchor
 };
 
 mod assets;
 use assets::mesh::antenna_cone::Cone as AntennaCone;
+use assets::mesh::lines::LineList;
 use assets::controls::pan_orbit_controls::{pan_orbit_camera, PanOrbitCameraBundle, PanOrbitState};
 
 fn main() {
     App::new()
         .insert_resource(Msaa::default())
         .insert_resource(ClearColor(Color::BLACK))
-        .insert_resource(AmbientLight{color: Color::WHITE, brightness: 500.0})
+        .insert_resource(AmbientLight{color: Color::WHITE, brightness: 1500.0})
         .add_plugins(DefaultPlugins
             .set(
                 WindowPlugin {
@@ -48,19 +49,36 @@ fn setup(
     mut materials: ResMut<Assets<StandardMaterial>>,
     // asset_server: Res<AssetServer>
 ) {
+    const HALF_PLANE_SIZE: f32 = 15000.0;
     // opaque plane
     commands.spawn(
         PbrBundle {
             mesh: meshes.add(
-                Plane3d::new(Vec3::Z, Vec2::splat(15000.0)).mesh().subdivisions(0)
+                Plane3d::new(Vec3::Z, Vec2::splat(HALF_PLANE_SIZE)).mesh().subdivisions(0)
             ),
             material: materials.add(StandardMaterial {
-                base_color: Color::srgb_u8(139, 137, 137),
+                base_color: Color::srgb_u8(100, 100, 100),
                 ..default()
             }),
+            transform: Transform::from_translation(Vec3::new(0.0, 0.0, -0.1)),
             ..Default::default()
         }
     );
+    let mut lines = Vec::<(Vec3, Vec3)>::with_capacity(10);
+    let mut y: f32;
+    for i in 0..=60 {
+        y = -HALF_PLANE_SIZE + 500.0 * i as f32;
+        lines.push(
+            (Vec3::new(-HALF_PLANE_SIZE, y, 0.0), Vec3::new(HALF_PLANE_SIZE, y, 0.0))
+        )
+    }
+    let mut x: f32;
+    for i in 0..=60 {
+        x = -HALF_PLANE_SIZE + 500.0 * i as f32;
+        lines.push(
+            (Vec3::new(x, -HALF_PLANE_SIZE, 0.0), Vec3::new(x, HALF_PLANE_SIZE, 0.0))
+        )
+    }
     // Antenna cone
     let ac_radius_m = 500.0f32;
     let ac_length_m = 1000.0f32;
@@ -145,6 +163,21 @@ fn setup(
         // });
     );
 
+    
+
+    commands.spawn(
+        PbrBundle {
+            mesh: meshes.add(
+                LineList { lines }
+            ),
+            material: materials.add(StandardMaterial {
+                base_color: Color::srgb_u8(0, 51, 102),
+                ..default()
+            }),
+            ..Default::default()
+        }
+    );
+
     // Camera
     commands.spawn(PanOrbitCameraBundle::default());
 }
@@ -157,13 +190,13 @@ fn axes(mut gizmos: Gizmos) {
     gizmos.arrow(Vec3::ZERO, Y, Srgba::GREEN);  // World Y-axis
     gizmos.arrow(Vec3::ZERO, Z, Srgba::BLUE);   // World Z-axis
 
-    const CELL_COUNT: UVec2 = UVec2{ x: 60, y: 60};
-    const SPACING: Vec2 = Vec2{ x: 500.0, y: 500.0 };
-    gizmos.grid(
-        Vec3::ZERO,
-        Quat::IDENTITY,
-        CELL_COUNT,
-        SPACING,
-        Color::srgb_u8(83, 104, 120)
-    ).outer_edges();
+    // const CELL_COUNT: UVec2 = UVec2{ x: 60, y: 60};
+    // const SPACING: Vec2 = Vec2{ x: 500.0, y: 500.0 };
+    // gizmos.grid(
+    //     Vec3::ZERO,
+    //     Quat::IDENTITY,
+    //     CELL_COUNT,
+    //     SPACING,
+    //     Color::srgb_u8(83, 104, 120)
+    // ).outer_edges();
 }
