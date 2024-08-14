@@ -7,3 +7,10 @@ edition = "2021"
 
 [dependencies]
 bevy = "0.14"
+lazy_static = "1.5"
+
+# Size optimization (see: https://github.com/johnthagen/min-sized-rust)
+[profile.release]
+strip = true
+lto = true
+codegen-units = 1

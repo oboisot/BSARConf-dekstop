@@ -1,7 +1,7 @@
 use bevy::{
     math::Vec3,
     render::{
-        mesh::{Indices, Mesh, PrimitiveTopology},
+        mesh::{Mesh, PrimitiveTopology},
         render_asset::RenderAssetUsages
     }
 };

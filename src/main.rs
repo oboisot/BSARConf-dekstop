@@ -7,6 +7,7 @@ mod assets;
 use assets::mesh::antenna_cone::Cone as AntennaCone;
 use assets::mesh::lines::LineList;
 use assets::controls::pan_orbit_controls::{pan_orbit_camera, PanOrbitCameraBundle, PanOrbitState};
+use assets::mesh::axis_helper::{axis_helper_commands_spawn, axis_helper_children_spawn};
 
 fn main() {
     App::new()
@@ -33,13 +34,7 @@ fn main() {
             )
         )
         .add_systems(Startup, setup)
-        .add_systems(
-            Update,
-            (
-                axes,
-                pan_orbit_camera.run_if(any_with_component::<PanOrbitState>)
-            )
-        )
+        .add_systems(Update, pan_orbit_camera.run_if(any_with_component::<PanOrbitState>))
         .run();
 }
 
@@ -64,7 +59,7 @@ fn setup(
             ..Default::default()
         }
     );
-    let mut lines = Vec::<(Vec3, Vec3)>::with_capacity(10);
+    let mut lines = Vec::<(Vec3, Vec3)>::with_capacity(122);
     let mut y: f32;
     for i in 0..=60 {
         y = -HALF_PLANE_SIZE + 500.0 * i as f32;
@@ -79,6 +74,20 @@ fn setup(
             (Vec3::new(x, -HALF_PLANE_SIZE, 0.0), Vec3::new(x, HALF_PLANE_SIZE, 0.0))
         )
     }
+
+    commands.spawn(
+        PbrBundle {
+            mesh: meshes.add(
+                LineList { lines }
+            ),
+            material: materials.add(StandardMaterial {
+                base_color: Color::srgb_u8(0, 51, 102),
+                ..default()
+            }),
+            ..Default::default()
+        }
+    );
+
     // Antenna cone
     let ac_radius_m = 500.0f32;
     let ac_length_m = 1000.0f32;
@@ -110,24 +119,25 @@ fn setup(
             ..Default::default()
         }
     ).with_children(|parent| {
-        parent.spawn(
-            PbrBundle {
-                mesh: meshes.add(AntennaCone {
-                    radius: 1.0,
-                    height: 1.0,
-                    radial_segments: 360,
-                    height_segments: 18,
-                    wireframe: false
-                }),
-                material: materials.add(StandardMaterial {
-                    base_color: Color::srgba(0.0, 0.0, 0.0, 0.5),
-                    alpha_mode: AlphaMode::Blend,
-                    ..Default::default()
-                }),
-                transform: Transform::from_scale(Vec3::new(1.0, 0.3, 1.0)),
-                ..Default::default()
-            }
-        );
+        axis_helper_children_spawn(parent, &mut meshes, &mut materials, 1.0);
+        // parent.spawn(
+        //     PbrBundle {
+        //         mesh: meshes.add(AntennaCone {
+        //             radius: 1.0,
+        //             height: 1.0,
+        //             radial_segments: 360,
+        //             height_segments: 18,
+        //             wireframe: false
+        //         }),
+        //         material: materials.add(StandardMaterial {
+        //             base_color: Color::srgba(0.0, 0.0, 0.0, 0.5),
+        //             alpha_mode: AlphaMode::Blend,
+        //             ..Default::default()
+        //         }),
+        //         transform: Transform::from_scale(Vec3::new(1.0, 0.3, 1.0)),
+        //         ..Default::default()
+        //     }
+        // );
     });
     // Cone
     commands.spawn(
@@ -164,39 +174,30 @@ fn setup(
     );
 
     
-
-    commands.spawn(
-        PbrBundle {
-            mesh: meshes.add(
-                LineList { lines }
-            ),
-            material: materials.add(StandardMaterial {
-                base_color: Color::srgb_u8(0, 51, 102),
-                ..default()
-            }),
-            ..Default::default()
-        }
-    );
+    
+    axis_helper_commands_spawn(&mut commands, meshes, materials, 500.0);
 
     // Camera
     commands.spawn(PanOrbitCameraBundle::default());
+
+    
 }
 
-fn axes(mut gizmos: Gizmos) {
-    const X: Vec3 = Vec3{ x: 500.0, y:   0.0, z: 0.0 };
-    const Y: Vec3 = Vec3{ x:   0.0, y: 500.0, z: 0.0 };
-    const Z: Vec3 = Vec3{ x:   0.0, y:   0.0, z: 500.0 };
-    gizmos.arrow(Vec3::ZERO, X, Srgba::RED);    // World X-axis
-    gizmos.arrow(Vec3::ZERO, Y, Srgba::GREEN);  // World Y-axis
-    gizmos.arrow(Vec3::ZERO, Z, Srgba::BLUE);   // World Z-axis
+// fn axes(mut gizmos: Gizmos) {
+//     const X: Vec3 = Vec3{ x: 500.0, y:   0.0, z: 0.0 };
+//     const Y: Vec3 = Vec3{ x:   0.0, y: 500.0, z: 0.0 };
+//     const Z: Vec3 = Vec3{ x:   0.0, y:   0.0, z: 500.0 };
+//     gizmos.arrow(Vec3::ZERO, X, Srgba::RED);    // World X-axis
+//     gizmos.arrow(Vec3::ZERO, Y, Srgba::GREEN);  // World Y-axis
+//     gizmos.arrow(Vec3::ZERO, Z, Srgba::BLUE);   // World Z-axis
 
-    // const CELL_COUNT: UVec2 = UVec2{ x: 60, y: 60};
-    // const SPACING: Vec2 = Vec2{ x: 500.0, y: 500.0 };
-    // gizmos.grid(
-    //     Vec3::ZERO,
-    //     Quat::IDENTITY,
-    //     CELL_COUNT,
-    //     SPACING,
-    //     Color::srgb_u8(83, 104, 120)
-    // ).outer_edges();
-}
+//     // const CELL_COUNT: UVec2 = UVec2{ x: 60, y: 60};
+//     // const SPACING: Vec2 = Vec2{ x: 500.0, y: 500.0 };
+//     // gizmos.grid(
+//     //     Vec3::ZERO,
+//     //     Quat::IDENTITY,
+//     //     CELL_COUNT,
+//     //     SPACING,
+//     //     Color::srgb_u8(83, 104, 120)
+//     // ).outer_edges();
+// }
