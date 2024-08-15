@@ -131,10 +131,12 @@ pub fn pan_orbit_camera(
             * settings.scroll_pixel_sensitivity * settings.zoom_sensitivity;
 
         let mut any = false;
-        
         if total_zoom != Vec2::ZERO {
             any = true;
             state.radius *= (-total_zoom.y).exp();
+            
+            const RADIUS_MIN: f32 = 0.1;
+            if state.radius < RADIUS_MIN { state.radius = RADIUS_MIN }
         }
 
         // To ORBIT, we change our pitch and yaw values

@@ -1,3 +1,5 @@
+use std::f32::consts::{FRAC_PI_2, PI};
+
 use bevy::{
     prelude::*,
     render::{
@@ -46,7 +48,7 @@ fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
-    // asset_server: Res<AssetServer>
+    asset_server: Res<AssetServer>
 ) {
     const HALF_PLANE_SIZE: f32 = 15000.0;
     // opaque plane
@@ -93,37 +95,84 @@ fn setup(
         }
     );
 
-    // Antenna cone
-    let ac_radius_m = 500.0f32;
-    let ac_length_m = 1000.0f32;
-    let elv_deg = 18.0f32;
-    let azi_deg = 5.0f32;
+    // // Antenna cone
+    // let ac_radius_m = 500.0f32;
+    // let ac_length_m = 1000.0f32;
+    // let elv_deg = 18.0f32;
+    // let azi_deg = 5.0f32;
+
+    // commands.spawn(
+    //     PbrBundle {
+    //         mesh: meshes.add(AntennaCone {
+    //             radius: 1.0,
+    //             height: 1.0,
+    //             radial_segments: 360,
+    //             height_segments: 18,
+    //             wireframe: true
+    //         }),
+    //         material: materials.add(StandardMaterial {
+    //             base_color: Color::WHITE,
+    //             ..Default::default()
+    //         }),
+    //         transform: Transform::from_scale(Vec3::new(ac_length_m, ac_radius_m, ac_radius_m))
+    //             .with_translation(Vec3::new(-1000.0, 0.0, 3000.0))
+    //             .with_rotation(
+    //                 Quat::from_mat3(&Mat3{
+    //                     x_axis: Vec3::Y,
+    //                     y_axis: Vec3::X,
+    //                     z_axis: -Vec3::Z
+    //                 })
+    //             ),
+    //         ..Default::default()
+    //     }
+    // );
 
     commands.spawn(
-        PbrBundle {
-            mesh: meshes.add(AntennaCone {
-                radius: 1.0,
-                height: 1.0,
-                radial_segments: 360,
-                height_segments: 18,
-                wireframe: true
-            }),
-            material: materials.add(StandardMaterial {
-                base_color: Color::WHITE,
-                ..Default::default()
-            }),
-            transform: Transform::from_scale(Vec3::new(ac_length_m, ac_radius_m, ac_radius_m))
-                .with_translation(Vec3::new(-1000.0, 0.0, 3000.0))
-                .with_rotation(
-                    Quat::from_mat3(&Mat3{
-                        x_axis: Vec3::Y,
-                        y_axis: Vec3::X,
-                        z_axis: -Vec3::Z
-                    })
-                ),
+        SceneBundle {
+            scene: asset_server.load("models/axis_helper.glb#Scene0"),
+            transform: Transform::from_scale(Vec3::splat(100.0))
+                .with_rotation(Quat::from_rotation_z(PI)*Quat::from_rotation_y(FRAC_PI_2)*Quat::from_rotation_z(-FRAC_PI_2))
+                .with_translation(Vec3::new(-1000.0, 0.0, 3000.0)),
             ..Default::default()
         }
-    );
+    ).with_children(|parent| {
+        parent.spawn(
+            SceneBundle {
+                scene: asset_server.load("models/axis_helper.glb#Scene0"),
+                transform: Transform::from_rotation(
+                    // Quat::from_rotation_z(PI*0.25) *// <-> ELEVATION
+                    // Quat::from_rotation_x(PI*0.25) * // <-> BANK
+                    // Quat::from_rotation_y(0.25*PI) // <-> HEADING
+                    Quat::from_rotation_x(0.0) * // <-> BANK
+                    Quat::from_rotation_z(PI*0.25) * // <-> -ELEVATION
+                    Quat::from_rotation_y(FRAC_PI_2)   // <-> HEADING
+                ),
+                ..Default::default()
+            }
+        ).with_children(|parent| {
+            parent.spawn(
+                PbrBundle {
+                    mesh: meshes.add(Cone {
+                        radius: 1e6,
+                        height: 1e7
+                    }.mesh()
+                    .resolution(360)
+                    .anchor(ConeAnchor::Tip)),
+                    material: materials.add(
+                        StandardMaterial {
+                            base_color: Color::srgba(1.0, 1.0, 1.0, 0.5),
+                            alpha_mode: AlphaMode::Blend,
+                            reflectance: 0.0,
+                            ..Default::default()
+                        }
+                    ),
+                    transform: Transform::from_scale(0.01*Vec3::new(1.0, 1.0, 0.4))
+                        .with_rotation(Quat::from_rotation_z(FRAC_PI_2)),
+                    ..Default::default()
+                }
+            );
+        });
+    });
 
 
     // Cone
@@ -142,27 +191,33 @@ fn setup(
                 ..Default::default()
             }),
             ..Default::default()
-        }//.with_children(|parent| {
-        //     parent.spawn(PbrBundle {
-        //         mesh: meshes.add(shape::Circle {
-        //             radius: 500.0,
-        //             vertices: 360
-        //         }.into()),
-        //         material: materials.add(StandardMaterial{
-        //             base_color: Color::GREEN,
-        //             cull_mode: None,
-        //             ..Default::default()
-        //         }),
-        //         transform: Transform::from_rotation(Quat::from_rotation_y(std::f32::consts::FRAC_PI_2)),
-        //         //     .with_translation(Vec3::new(1000.0, 0.0, 0.0)),
-        //         ..Default::default()
-        //     });
-        // });
-    );
+        }).with_children(|parent| {
+            parent.spawn(
+                SceneBundle {
+                    scene: asset_server.load("models/axis_helper.glb#Scene0"),
+                    transform: Transform::from_scale(Vec3::splat(500.0))
+                        .with_rotation(Quat::from_rotation_z(-FRAC_PI_2)),
+                    ..Default::default()
+                }
+            );
+        });
+    
+    
+    // axis_helper_commands_spawn(&mut commands, meshes, materials, 500.0);
 
-    
-    
-    axis_helper_commands_spawn(&mut commands, meshes, materials, 500.0);
+    commands.spawn(SceneBundle {
+        // This is equivalent to "models/FlightHelmet/FlightHelmet.gltf#Scene0"
+        // The `#Scene0` label here is very important because it tells bevy to load the first scene in the glTF file.
+        // If this isn't specified bevy doesn't know which part of the glTF file to load.
+        scene: asset_server.load("models/axis_helper.glb#Scene0"),
+        // You can use the transform to give it a position
+        transform: Transform::from_xyz(0.0, 0.0, 0.0)
+            .with_rotation(Quat::from_rotation_x(FRAC_PI_2))
+            .with_scale(Vec3::splat(500.0)),
+        ..Default::default()
+    });
+
+
 
     // Camera
     commands.spawn(
