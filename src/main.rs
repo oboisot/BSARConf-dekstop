@@ -1,19 +1,23 @@
 use bevy::{
     prelude::*,
-    render::mesh::ConeAnchor
+    render::{
+        mesh::ConeAnchor,
+        camera::Exposure
+    }
 };
 
 mod assets;
 use assets::mesh::antenna_cone::Cone as AntennaCone;
 use assets::mesh::lines::LineList;
 use assets::controls::pan_orbit_controls::{pan_orbit_camera, PanOrbitCameraBundle, PanOrbitState};
-use assets::mesh::axis_helper::{axis_helper_commands_spawn, axis_helper_children_spawn};
+use assets::mesh::axis_helper::axis_helper_commands_spawn;
 
 fn main() {
     App::new()
         .insert_resource(Msaa::default())
-        .insert_resource(ClearColor(Color::BLACK))
-        .insert_resource(AmbientLight{color: Color::WHITE, brightness: 1500.0})
+        // .insert_resource(ClearColor(Color::BLACK))
+        // .insert_resource(AmbientLight{color: Color::WHITE, brightness: 1500.0})
+        .insert_resource(AmbientLight::default())
         .add_plugins(DefaultPlugins
             .set(
                 WindowPlugin {
@@ -52,13 +56,14 @@ fn setup(
                 Plane3d::new(Vec3::Z, Vec2::splat(HALF_PLANE_SIZE)).mesh().subdivisions(0)
             ),
             material: materials.add(StandardMaterial {
-                base_color: Color::srgb_u8(100, 100, 100),
+                base_color: Color::srgb_u8(120, 120, 120),
                 ..default()
             }),
             transform: Transform::from_translation(Vec3::new(0.0, 0.0, -0.1)),
             ..Default::default()
         }
     );
+
     let mut lines = Vec::<(Vec3, Vec3)>::with_capacity(122);
     let mut y: f32;
     for i in 0..=60 {
@@ -81,7 +86,7 @@ fn setup(
                 LineList { lines }
             ),
             material: materials.add(StandardMaterial {
-                base_color: Color::srgb_u8(0, 51, 102),
+                base_color: Color::srgb_u8(188, 188, 188),//Color::srgb_u8(0, 51, 102),
                 ..default()
             }),
             ..Default::default()
@@ -118,27 +123,9 @@ fn setup(
                 ),
             ..Default::default()
         }
-    ).with_children(|parent| {
-        axis_helper_children_spawn(parent, &mut meshes, &mut materials, 1.0);
-        // parent.spawn(
-        //     PbrBundle {
-        //         mesh: meshes.add(AntennaCone {
-        //             radius: 1.0,
-        //             height: 1.0,
-        //             radial_segments: 360,
-        //             height_segments: 18,
-        //             wireframe: false
-        //         }),
-        //         material: materials.add(StandardMaterial {
-        //             base_color: Color::srgba(0.0, 0.0, 0.0, 0.5),
-        //             alpha_mode: AlphaMode::Blend,
-        //             ..Default::default()
-        //         }),
-        //         transform: Transform::from_scale(Vec3::new(1.0, 0.3, 1.0)),
-        //         ..Default::default()
-        //     }
-        // );
-    });
+    );
+
+
     // Cone
     commands.spawn(
         PbrBundle {
@@ -178,7 +165,19 @@ fn setup(
     axis_helper_commands_spawn(&mut commands, meshes, materials, 500.0);
 
     // Camera
-    commands.spawn(PanOrbitCameraBundle::default());
+    commands.spawn(
+        PanOrbitCameraBundle {
+            camera: Camera3dBundle {
+                camera: Camera {
+                    clear_color: ClearColorConfig::Custom(Color::BLACK),
+                    ..Default::default()
+                },
+                exposure: Exposure::INDOOR,
+                ..Default::default()
+            },
+            ..Default::default()
+        }
+    );
 
     
 }

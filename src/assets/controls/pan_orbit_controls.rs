@@ -57,7 +57,7 @@ impl Default for PanOrbitState {
     fn default() -> Self {
         PanOrbitState {
             center: Vec3::ZERO,
-            radius: 35000.0,
+            radius: 25000.0,
             pitch: 60.0f32.to_radians(),
             yaw: 45.0f32.to_radians(),
         }
