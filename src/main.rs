@@ -14,11 +14,25 @@ use bevy::{
         camera::Exposure
     }
 };
+use lazy_static::lazy_static;
 use std::f32::consts::FRAC_PI_2;
+
+lazy_static!(
+
+    static ref ENU_TO_NED_ROT: Quat = Quat::from_mat3(&Mat3 { // ENU -> NED rotation
+        x_axis: Vec3::Y,
+        y_axis: Vec3::X,
+        z_axis: -Vec3::Z
+    });
+
+);
 
 //
 #[derive(Component)]
 struct TxCarrierRefMarker;
+
+#[derive(Component)]
+struct TxAntennaRefMarker;
 
 #[derive(Component)]
 struct TxAntennaConeMarker;
@@ -53,7 +67,13 @@ fn main() {
             )
         )
         .add_systems(Startup, setup)
-        .add_systems(PostStartup, set_tx_carrier_transform)
+        .add_systems(PostStartup,
+            (
+                init_tx_carrier_transform,
+                init_tx_antenna_transform,
+                init_tx_antenna_cone_opening
+            )
+        )
         .add_systems(Update, pan_orbit_camera.run_if(any_with_component::<PanOrbitState>))
         .run();
 }
@@ -153,8 +173,7 @@ fn setup(
                         ..Default::default()
                     }
                 ),
-                transform: Transform::from_rotation(Quat::from_rotation_z(FRAC_PI_2)) // Cone along X-axis
-                    .with_scale(Vec3::new(1.0, 0.75, 1.0)), // opening in Y -> azimuth, Z -> elevation
+                transform: Transform::from_rotation(Quat::from_rotation_z(FRAC_PI_2)), // Cone along X-axis
                 ..Default::default()
             },
             TxAntennaConeMarker // Add a marker component to Tx Antenna Cone entity
@@ -163,68 +182,47 @@ fn setup(
 
     commands // Antenna cone is the child of tx_antenna_ref...
         .entity(tx_antenna_ref)
+        .insert(TxAntennaRefMarker) // Add a marker component to Tx Antenna entity
         .add_child(tx_antenna_cone);
     commands // Which is the child of 
         .entity(tx_carrier_ref)
         .insert(TxCarrierRefMarker) // Add a marker component to Tx Carrier entity
         .add_child(tx_antenna_ref);
 
-    //let q = Query<(Entity, &mut Transform), With<TxCarrierRefMarker>>;
-    
-
-    // commands.spawn(
-    //     SceneBundle {
-    //         scene: asset_server.load("models/axis_helper.glb#Scene0"),
-    //         transform: Transform::from_scale(Vec3::splat(100.0))
-    //             .with_rotation(Quat::from_rotation_z(PI)*Quat::from_rotation_y(FRAC_PI_2)*Quat::from_rotation_z(-FRAC_PI_2))
-    //             .with_translation(Vec3::new(-1000.0, 0.0, 3000.0)),
-    //         ..Default::default()
-    //     }
-    // ).with_children(|parent| {
-    //     parent.spawn(
-    //         SceneBundle {
-    //             scene: asset_server.load("models/axis_helper.glb#Scene0"),
-    //             transform: Transform::from_rotation(
-    //                 // Quat::from_rotation_z(PI*0.25) *// <-> ELEVATION
-    //                 // Quat::from_rotation_x(PI*0.25) * // <-> BANK
-    //                 // Quat::from_rotation_y(0.25*PI) // <-> HEADING
-    //                 Quat::from_rotation_x(0.0) * // <-> BANK
-    //                 Quat::from_rotation_z(PI*0.25) * // <-> -ELEVATION
-    //                 Quat::from_rotation_y(FRAC_PI_2)   // <-> HEADING
-    //             ),
-    //             ..Default::default()
-    //         }
-    //     ).with_children(|parent| {
-    //         parent.spawn(
-    //             PbrBundle {
-    //                 mesh: meshes.add(Cone {
-    //                     radius: 1e6,
-    //                     height: 1e7
-    //                 }.mesh()
-    //                 .resolution(360)
-    //                 .anchor(ConeAnchor::Tip)),
-    //                 material: materials.add(
-    //                     StandardMaterial {
-    //                         base_color: Color::srgba(1.0, 1.0, 1.0, 0.5),
-    //                         alpha_mode: AlphaMode::Blend,
-    //                         reflectance: 0.0,
-    //                         ..Default::default()
-    //                     }
-    //                 ),
-    //                 transform: Transform::from_scale(0.01*Vec3::new(1.0, 1.0, 0.4))
-    //                     .with_rotation(Quat::from_rotation_z(FRAC_PI_2)),
-    //                 ..Default::default()
-    //             }
-    //         );
-    //     });
-    // });
-
-
 }
 
 
-fn set_tx_carrier_transform(mut query: Query<&mut Transform, With<TxCarrierRefMarker>>) {
-    let mut transform = query.get_single_mut().expect("tirixywtrgze");
+fn init_tx_carrier_transform(mut query: Query<&mut Transform, With<TxCarrierRefMarker>>) {
+    let mut transform = query
+        .get_single_mut()
+        .expect("Can't get `TxCarrierRef` transform");
 
-    transform.translation = Vec3::new(-1000.0, 0.0, 2500.0);
+    transform.translation = Vec3::new(-5000.0, 0.0, 3000.0);
+    transform.rotation = ENU_TO_NED_ROT.clone();
+}
+
+fn init_tx_antenna_transform(mut query: Query<&mut Transform, With<TxAntennaRefMarker>>) {
+    let mut transform = query
+        .get_single_mut()
+        .expect("Can't get `TxCarrierRef` transform");
+    transform.rotation = Quat::from_euler(
+        EulerRot::ZYX,
+        90.0f32.to_radians(),  // Heading
+        -60.0f32.to_radians(), // Elevation
+        0.0                    // Bank
+    );
+}
+
+fn init_tx_antenna_cone_opening(
+    mut query: Query<&mut Transform, With<TxAntennaConeMarker>>,
+) {
+    let mut transform = query
+        .get_single_mut()
+        .expect("Can't get `TxCarrierRef` transform");
+
+    transform.scale = Vec3::new(
+        1.0, // Azimuth aperture
+        1.0,
+        0.5  // Elevation aperture
+    );
 }
