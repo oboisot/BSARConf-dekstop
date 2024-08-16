@@ -4,7 +4,7 @@ use bevy::render::{mesh::{Indices, Mesh, PrimitiveTopology}, render_asset::Rende
 /// vertical axis in the X axis and cone apex at 
 /// the origin.
 #[derive(Clone, Copy, Debug)]
-pub struct Cone {
+pub struct AntennaCone {
     /// Base radius of the cone in the XY plane.
     pub radius: f32,
     /// Height of the cone in the Z axis.
@@ -17,7 +17,7 @@ pub struct Cone {
     pub wireframe: bool
 }
 
-impl Default for Cone {
+impl Default for AntennaCone {
     fn default() -> Self {
         Self {
             radius: 1.0,
@@ -29,8 +29,8 @@ impl Default for Cone {
     }
 }
 
-impl From<Cone> for Mesh {
-    fn from(cone: Cone) -> Self {        
+impl From<AntennaCone> for Mesh {
+    fn from(cone: AntennaCone) -> Self {        
         debug_assert!(cone.radius > 0.0, "Cone 'radius' must be strictly positive");
         debug_assert!(cone.height > 0.0, "Cone 'height' must be strictly positive");
         debug_assert!(cone.radial_segments >= 3, "Cone 'radial_segments' must be greater or equal to 3");
