@@ -133,7 +133,9 @@ pub fn pan_orbit_camera(
         let mut any = false;
         if total_zoom != Vec2::ZERO {
             any = true;
+            println!("(-total_zoom.y).exp() = {}", (-total_zoom.y).exp());
             state.radius *= (-total_zoom.y).exp();
+            println!("state.radius = {}", state.radius);
         }
 
         // To ORBIT, we change our pitch and yaw values

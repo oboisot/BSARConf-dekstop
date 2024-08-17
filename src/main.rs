@@ -101,7 +101,7 @@ fn setup(
     );
 
     const HALF_PLANE_SIZE: f32 = 15000.0;
-    const GRID_SIZE: f32 = 500.0;
+    const GRID_SIZE: f32 = 250.0;
     // opaque plane
     let world_plane = commands.spawn(
         PbrBundle {
@@ -117,20 +117,29 @@ fn setup(
         }
     ).id();
 
-    let mut lines = Vec::<(Vec3, Vec3)>::with_capacity(122);
+    let num_lines = (HALF_PLANE_SIZE / GRID_SIZE).floor() as usize;
+    let mut lines = Vec::<(Vec3, Vec3)>::with_capacity(num_lines*4);
+    // X-lines
     let mut y: f32;
-    for i in 0..=60 {
-        y = -HALF_PLANE_SIZE + GRID_SIZE * i as f32;
+    for i in 1..=num_lines {
+        y = GRID_SIZE * i as f32;
         lines.push(
             (Vec3::new(-HALF_PLANE_SIZE, y, 0.0), Vec3::new(HALF_PLANE_SIZE, y, 0.0))
-        )
+        );
+        lines.push(
+            (Vec3::new(-HALF_PLANE_SIZE, -y, 0.0), Vec3::new(HALF_PLANE_SIZE, -y, 0.0))
+        );
     }
+    // Y-lines
     let mut x: f32;
-    for i in 0..=60 {
-        x = -HALF_PLANE_SIZE + GRID_SIZE * i as f32;
+    for i in 1..=num_lines {
+        x = GRID_SIZE * i as f32;
         lines.push(
             (Vec3::new(x, -HALF_PLANE_SIZE, 0.0), Vec3::new(x, HALF_PLANE_SIZE, 0.0))
-        )
+        );
+        lines.push(
+            (Vec3::new(-x, -HALF_PLANE_SIZE, 0.0), Vec3::new(-x, HALF_PLANE_SIZE, 0.0))
+        );
     }
 
     let world_grid = commands.spawn(
@@ -146,16 +155,48 @@ fn setup(
         }
     ).id();
 
+    // X-line
+    let x_line = commands.spawn(
+        PbrBundle {
+            mesh: meshes.add(
+                LineList { 
+                    lines: vec![(Vec3::new(-HALF_PLANE_SIZE, 0.0, 0.0), Vec3::new(HALF_PLANE_SIZE, 0.0, 0.0))]
+                }
+            ),
+            material: materials.add(StandardMaterial {
+                base_color: Color::srgb_u8(255, 0, 0),//Color::srgb_u8(0, 51, 102),
+                ..default()
+            }),
+            ..Default::default()
+        }
+    ).id();
+
+    // X-line
+    let y_line = commands.spawn(
+        PbrBundle {
+            mesh: meshes.add(
+                LineList { 
+                    lines: vec![(Vec3::new(0.0, -HALF_PLANE_SIZE, 0.0), Vec3::new(0.0, HALF_PLANE_SIZE, 0.0))]
+                }
+            ),
+            material: materials.add(StandardMaterial {
+                base_color: Color::srgb_u8(0, 255, 0),//Color::srgb_u8(0, 51, 102),
+                ..default()
+            }),
+            ..Default::default()
+        }
+    ).id();
+
     let world_axis_helper = spawn_axis_helper(&mut commands, &mut meshes, &mut materials, 500.0);
 
     commands
         .entity(world_plane)
-        .push_children(&[world_grid, world_axis_helper]);
+        .push_children(&[world_grid, x_line, y_line, world_axis_helper]);
 
 
     // Transmitter
     let tx_carrier_ref = spawn_axis_helper(&mut commands, &mut meshes, &mut materials, 100.0);
-    let tx_antenna_ref = spawn_axis_helper(&mut commands, &mut meshes, &mut materials, 100.0);
+    let tx_antenna_ref = spawn_axis_helper(&mut commands, &mut meshes, &mut materials, 50.0);
     let tx_antenna_cone = commands.spawn(
         (
             PbrBundle {
@@ -205,6 +246,7 @@ fn init_tx_antenna_transform(mut query: Query<&mut Transform, With<TxAntennaRefM
     let mut transform = query
         .get_single_mut()
         .expect("Can't get `TxCarrierRef` transform");
+    transform.translation = Vec3::new(0.0, 2.58, -0.53);
     transform.rotation = Quat::from_euler(
         EulerRot::ZYX,
         90.0f32.to_radians(),  // Heading
