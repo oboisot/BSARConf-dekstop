@@ -6,14 +6,13 @@ use bevy::{
         prelude::Query
     },
     input::{
-        ButtonInput,
-        mouse::{MouseMotion, MouseScrollUnit, MouseWheel, MouseButton}
+        mouse::{MouseButton, MouseMotion, MouseScrollUnit, MouseWheel}, ButtonInput
     },
-    math::{Vec2, Vec3, Quat},
-    prelude::{Camera3dBundle, Transform, DetectChanges, Res}
+    math::{Quat, Vec2, Vec3},
+    prelude::{Camera3dBundle, DetectChanges, Res, Transform}
 };
 
-use std::f32::consts::FRAC_PI_2;
+use std::f32::consts::PI;
 
 // see: https://bevy-cheatbook.github.io/cookbook/pan-orbit-camera.html
 
@@ -29,6 +28,7 @@ pub struct PanOrbitCameraBundle {
 #[derive(Component)]
 pub struct PanOrbitState {
     pub center: Vec3,
+    pub z_focus: f32,
     pub radius: f32,
     pub pitch: f32,
     pub yaw: f32,
@@ -43,10 +43,6 @@ pub struct PanOrbitSettings {
     pub orbit_sensitivity: f32,
     /// Exponent per pixel of mouse motion
     pub zoom_sensitivity: f32,
-    /// Mouse button to hold for panning
-    pub pan_button: MouseButton,
-    /// Mouse button to hold for orbiting
-    pub orbit_button: MouseButton,
     /// For devices with a notched scroll wheel, like desktop mice
     pub scroll_line_sensitivity: f32,
     /// For devices with smooth scrolling, like touchpads
@@ -57,7 +53,8 @@ impl Default for PanOrbitState {
     fn default() -> Self {
         PanOrbitState {
             center: Vec3::ZERO,
-            radius: 25000.0,
+            z_focus: 0.0f32,
+            radius: 25000.0f32,
             pitch: 60.0f32.to_radians(),
             yaw: 45.0f32.to_radians(),
         }
@@ -70,8 +67,6 @@ impl Default for PanOrbitSettings {
             pan_sensitivity: 0.001, // 1000 pixels per world unit
             orbit_sensitivity: 0.2f32.to_radians(), // 0.5 degree per pixel
             zoom_sensitivity: 0.01,
-            pan_button: MouseButton::Right,
-            orbit_button: MouseButton::Left,
             scroll_line_sensitivity: 16.0, // 1 "line" == 16 "pixels of motion"
             scroll_pixel_sensitivity: 1.0,
         }
@@ -88,7 +83,7 @@ pub fn pan_orbit_camera(
         &mut Transform,
     )>,
 ) {
-    const PITCH_MAX_RAD: f32 = FRAC_PI_2 * 1.1;
+    const PITCH_MAX_RAD: f32 = 100.0 * PI / 180.0;
 
     // First, accumulate the total amount of
     // mouse motion and scroll, from all pending events:
@@ -115,27 +110,23 @@ pub fn pan_orbit_camera(
         // based on our configuration settings.
 
         let mut total_pan = Vec2::ZERO;
-        if mbi.pressed(settings.pan_button) {
+        if mbi.pressed(MouseButton::Right) {
             total_pan += total_motion * settings.pan_sensitivity;
         }
 
         let mut total_orbit = Vec2::ZERO;
-        if mbi.pressed(settings.orbit_button) {
+        if mbi.pressed(MouseButton::Left) {
             total_orbit += total_motion * settings.orbit_sensitivity;
         }
 
         let mut total_zoom = Vec2::ZERO;
-        total_zoom -= total_scroll_lines
-            * settings.scroll_line_sensitivity * settings.zoom_sensitivity;
-        total_zoom -= total_scroll_pixels
-            * settings.scroll_pixel_sensitivity * settings.zoom_sensitivity;
+        total_zoom -= total_scroll_lines * settings.scroll_line_sensitivity * settings.zoom_sensitivity;
+        total_zoom -= total_scroll_pixels * settings.scroll_pixel_sensitivity * settings.zoom_sensitivity;
 
         let mut any = false;
         if total_zoom != Vec2::ZERO {
             any = true;
-            println!("(-total_zoom.y).exp() = {}", (-total_zoom.y).exp());
             state.radius *= (-total_zoom.y).exp();
-            println!("state.radius = {}", state.radius);
         }
 
         // To ORBIT, we change our pitch and yaw values
@@ -150,13 +141,24 @@ pub fn pan_orbit_camera(
             if state.pitch <= 0.0  {
                 state.pitch = 0.0;
             }
-        }
+        }        
 
         if total_pan != Vec2::ZERO {
             any = true;
             let radius = state.radius;
-            state.center -= transform.right() * total_pan.x * radius;
-            state.center += transform.up() * total_pan.y * radius;
+            // Used to compensate the Up axis projection in the world Y-axis relative to pitch angle.
+            // Up norm projected onto the Y-axis is: norm(up)|Y = norm(up)*cos(pitch)
+            // When pitch is close to 90° it goes down to zero, so we compensate this value to allow
+            // a y panning which keeps its moving speed.
+            // Furhermore, the sign change in cos when pitch is greater than 90° keeps the plane
+            // movement correct
+            let mut cpitch = state.pitch.cos();
+            if cpitch == 0.0 {
+                cpitch = 1.0
+            }
+            state.center -= transform.right() * total_pan.x * radius;       // note: minus sign because center is moved contrary to the horizontal movement
+            state.center += transform.up() * total_pan.y * radius / cpitch; // note: plus sign becaus vertical movement is inverted on screen (screen y is positive downside)
+            state.center.z = state.z_focus;
         }
 
         if any || state.is_added() {

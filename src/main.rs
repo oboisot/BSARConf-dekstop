@@ -14,6 +14,7 @@ use bevy::{
         camera::Exposure
     }
 };
+use bevy_mod_picking::prelude::*;
 use lazy_static::lazy_static;
 use std::f32::consts::FRAC_PI_2;
 
@@ -37,8 +38,8 @@ struct TxAntennaRefMarker;
 #[derive(Component)]
 struct TxAntennaConeMarker;
 
-#[derive(Component)]
-struct RxCarrierRefMarker;
+// #[derive(Component)]
+// struct RxCarrierRefMarker;
 
 
 fn main() {
@@ -66,6 +67,7 @@ fn main() {
                 }
             )
         )
+        .add_plugins(DefaultPickingPlugins) // Includes a mesh raycasting backend by default
         .add_systems(Startup, setup)
         .add_systems(PostStartup,
             (
@@ -101,7 +103,7 @@ fn setup(
     );
 
     const HALF_PLANE_SIZE: f32 = 15000.0;
-    const GRID_SIZE: f32 = 250.0;
+    const GRID_SIZE: f32 = 500.0;
     // opaque plane
     let world_plane = commands.spawn(
         PbrBundle {
@@ -217,6 +219,7 @@ fn setup(
                 transform: Transform::from_rotation(Quat::from_rotation_z(FRAC_PI_2)), // Cone along X-axis
                 ..Default::default()
             },
+            PickableBundle::default(),
             TxAntennaConeMarker // Add a marker component to Tx Antenna Cone entity
         )
     ).id();

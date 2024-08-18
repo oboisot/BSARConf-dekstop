@@ -125,7 +125,7 @@ fn make_cylinder_base(size: f32) -> CylinderMeshBuilder {
         radius: 0.005 * size,
         half_height: 0.45 * size
     }.mesh()
-    .resolution(8)
+    .resolution(32)
     .segments(1)
     .anchor(CylinderAnchor::Bottom)
 }
@@ -136,6 +136,6 @@ fn make_cone_head(size: f32) -> ConeMeshBuilder {
         radius: 0.05 * size,
         height: 0.1 * size
     }.mesh()
-    .resolution(8)
+    .resolution(32)
     .anchor(ConeAnchor::Base)
 }
