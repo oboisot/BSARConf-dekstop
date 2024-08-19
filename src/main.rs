@@ -8,10 +8,7 @@ use scene::{
 
 use bevy::{
     prelude::*,
-    render::{
-        mesh::ConeAnchor,
-        camera::Exposure
-    }
+    render::mesh::ConeAnchor
 };
 use bevy_mod_picking::prelude::*;
 use lazy_static::lazy_static;
@@ -40,11 +37,35 @@ struct TxAntennaConeMarker;
 // #[derive(Component)]
 // struct RxCarrierRefMarker;
 
+// We can use a dynamic highlight that builds a material based on the entity's base material. This
+// allows us to "tint" a material by leaving all other properties - like the texture - unchanged,
+// and only modifying the base color. The highlighting plugin handles all the work of caching and
+// updating these materials when the base material changes, and swapping it out during pointer
+// events.
+//
+// Note that this works for *any* type of asset, not just bevy's built in materials.
+const HIGHLIGHT_TINT: Highlight<StandardMaterial> = Highlight {
+    hovered: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
+        base_color: matl.base_color.with_alpha(1.0),
+        ..matl.to_owned()
+    })),
+    pressed: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
+        base_color: matl.base_color.with_alpha(1.0),
+        ..matl.to_owned()
+    })),
+    selected: Some(HighlightKind::new_dynamic(|matl| StandardMaterial {
+        base_color: matl
+            .base_color
+            .mix(&Color::srgba(-0.4, -0.4, 0.8, 0.8), 0.5), // pressed is a different blue
+        ..matl.to_owned()
+    }))
+};
+
 
 fn main() {
     App::new()
         .insert_resource(Msaa::default())
-        // .insert_resource(ClearColor(Color::BLACK))
+        .insert_resource(ClearColor(Color::BLACK))
         // .insert_resource(AmbientLight{color: Color::WHITE, brightness: 1500.0})
         // .insert_resource(AmbientLight::default())
         // .insert_resource( // no need of an AmbientLight with "unlit: true" for materials
@@ -91,21 +112,8 @@ fn setup_scene(
     mut materials: ResMut<Assets<StandardMaterial>>,
     // asset_server: Res<AssetServer>
 ) {
-
     // Camera
-    commands.spawn(
-        PanOrbitCameraBundle {
-            camera: Camera3dBundle {
-                camera: Camera {
-                    clear_color: ClearColorConfig::Custom(Color::BLACK),
-                    ..Default::default()
-                },
-                // exposure: Exposure::INDOOR,
-                ..Default::default()
-            },
-            ..Default::default()
-        }
-    );
+    commands.spawn(PanOrbitCameraBundle::default());
 
     // let _world = spawn_world(&mut commands, &mut meshes, &mut materials);
     spawn_world(&mut commands, &mut meshes, &mut materials);
@@ -133,7 +141,8 @@ fn setup_scene(
                 transform: Transform::from_rotation(Quat::from_rotation_z(FRAC_PI_2)), // Cone along X-axis
                 ..Default::default()
             },
-            PickableBundle::default(),
+            PickableBundle::default(), // <- Makes the mesh pickable.
+            HIGHLIGHT_TINT,            // Override the global highlighting settings for this mesh
             TxAntennaConeMarker // Add a marker component to Tx Antenna Cone entity
         )
     ).id();
