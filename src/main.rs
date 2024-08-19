@@ -1,10 +1,9 @@
 mod mesh;
 mod scene;
 
-use mesh::LineList;
 use scene::{
     pan_orbit_camera, PanOrbitCameraBundle, PanOrbitState,
-    spawn_axis_helper
+    entities::{spawn_world, spawn_axis_helper}
 };
 
 use bevy::{
@@ -47,7 +46,13 @@ fn main() {
         .insert_resource(Msaa::default())
         // .insert_resource(ClearColor(Color::BLACK))
         // .insert_resource(AmbientLight{color: Color::WHITE, brightness: 1500.0})
-        .insert_resource(AmbientLight::default())
+        // .insert_resource(AmbientLight::default())
+        // .insert_resource( // no need of an AmbientLight with "unlit: true" for materials
+        //     AmbientLight {
+        //         brightness: 80.0,
+        //         color: LinearRgba::WHITE.into()
+        //     }
+        // )
         .add_plugins(DefaultPlugins
             .set(
                 WindowPlugin {
@@ -68,7 +73,7 @@ fn main() {
             )
         )
         .add_plugins(DefaultPickingPlugins) // Includes a mesh raycasting backend by default
-        .add_systems(Startup, setup)
+        .add_systems(Startup, setup_scene)
         .add_systems(PostStartup,
             (
                 init_tx_carrier_transform,
@@ -80,7 +85,7 @@ fn main() {
         .run();
 }
 
-fn setup(
+fn setup_scene(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -95,106 +100,15 @@ fn setup(
                     clear_color: ClearColorConfig::Custom(Color::BLACK),
                     ..Default::default()
                 },
-                exposure: Exposure::INDOOR,
+                // exposure: Exposure::INDOOR,
                 ..Default::default()
             },
             ..Default::default()
         }
     );
 
-    const HALF_PLANE_SIZE: f32 = 15000.0;
-    const GRID_SIZE: f32 = 500.0;
-    // opaque plane
-    let world_plane = commands.spawn(
-        PbrBundle {
-            mesh: meshes.add(
-                Plane3d::new(Vec3::Z, Vec2::splat(HALF_PLANE_SIZE)).mesh().subdivisions(0)
-            ),
-            material: materials.add(StandardMaterial {
-                base_color: Color::srgb_u8(120, 120, 120),
-                ..default()
-            }),
-            transform: Transform::from_translation(Vec3::new(0.0, 0.0, -0.1)),
-            ..Default::default()
-        }
-    ).id();
-
-    let num_lines = (HALF_PLANE_SIZE / GRID_SIZE).floor() as usize;
-    let mut lines = Vec::<(Vec3, Vec3)>::with_capacity(num_lines*4);
-    // X-lines
-    let mut y: f32;
-    for i in 1..=num_lines {
-        y = GRID_SIZE * i as f32;
-        lines.push(
-            (Vec3::new(-HALF_PLANE_SIZE, y, 0.0), Vec3::new(HALF_PLANE_SIZE, y, 0.0))
-        );
-        lines.push(
-            (Vec3::new(-HALF_PLANE_SIZE, -y, 0.0), Vec3::new(HALF_PLANE_SIZE, -y, 0.0))
-        );
-    }
-    // Y-lines
-    let mut x: f32;
-    for i in 1..=num_lines {
-        x = GRID_SIZE * i as f32;
-        lines.push(
-            (Vec3::new(x, -HALF_PLANE_SIZE, 0.0), Vec3::new(x, HALF_PLANE_SIZE, 0.0))
-        );
-        lines.push(
-            (Vec3::new(-x, -HALF_PLANE_SIZE, 0.0), Vec3::new(-x, HALF_PLANE_SIZE, 0.0))
-        );
-    }
-
-    let world_grid = commands.spawn(
-        PbrBundle {
-            mesh: meshes.add(
-                LineList { lines }
-            ),
-            material: materials.add(StandardMaterial {
-                base_color: Color::srgb_u8(188, 188, 188),//Color::srgb_u8(0, 51, 102),
-                ..default()
-            }),
-            ..Default::default()
-        }
-    ).id();
-
-    // X-line
-    let x_line = commands.spawn(
-        PbrBundle {
-            mesh: meshes.add(
-                LineList { 
-                    lines: vec![(Vec3::new(-HALF_PLANE_SIZE, 0.0, 0.0), Vec3::new(HALF_PLANE_SIZE, 0.0, 0.0))]
-                }
-            ),
-            material: materials.add(StandardMaterial {
-                base_color: Color::srgb_u8(255, 0, 0),//Color::srgb_u8(0, 51, 102),
-                ..default()
-            }),
-            ..Default::default()
-        }
-    ).id();
-
-    // X-line
-    let y_line = commands.spawn(
-        PbrBundle {
-            mesh: meshes.add(
-                LineList { 
-                    lines: vec![(Vec3::new(0.0, -HALF_PLANE_SIZE, 0.0), Vec3::new(0.0, HALF_PLANE_SIZE, 0.0))]
-                }
-            ),
-            material: materials.add(StandardMaterial {
-                base_color: Color::srgb_u8(0, 255, 0),//Color::srgb_u8(0, 51, 102),
-                ..default()
-            }),
-            ..Default::default()
-        }
-    ).id();
-
-    let world_axis_helper = spawn_axis_helper(&mut commands, &mut meshes, &mut materials, 500.0);
-
-    commands
-        .entity(world_plane)
-        .push_children(&[world_grid, x_line, y_line, world_axis_helper]);
-
+    // let _world = spawn_world(&mut commands, &mut meshes, &mut materials);
+    spawn_world(&mut commands, &mut meshes, &mut materials);
 
     // Transmitter
     let tx_carrier_ref = spawn_axis_helper(&mut commands, &mut meshes, &mut materials, 100.0);
@@ -210,9 +124,9 @@ fn setup(
                 .anchor(ConeAnchor::Tip)),
                 material: materials.add(
                     StandardMaterial {
-                        base_color: Color::srgba(1.0, 1.0, 1.0, 0.5),
+                        base_color: Color::srgba(1.0, 1.0, 1.0, 0.3),
                         alpha_mode: AlphaMode::Blend,
-                        reflectance: 0.0,
+                        unlit: true,
                         ..Default::default()
                     }
                 ),

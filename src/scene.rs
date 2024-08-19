@@ -1,10 +1,8 @@
-///
-mod axis_helper;
-pub use axis_helper::spawn_axis_helper;
+pub mod entities;
 
 /// Pan/Orbit Controls for camera
-mod pan_orbit_controls;
-pub use pan_orbit_controls::{
+mod controls;
+pub use controls::{
     PanOrbitCameraBundle,
     PanOrbitState,
     pan_orbit_camera

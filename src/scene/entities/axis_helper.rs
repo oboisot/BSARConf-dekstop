@@ -1,6 +1,6 @@
 use bevy::{
     asset::Assets,
-    color::Srgba,
+    color::LinearRgba,
     ecs::prelude::Commands,
     math::{
         primitives::{Cone, Cylinder, Sphere},
@@ -12,6 +12,55 @@ use bevy::{
 };
 use lazy_static::lazy_static;
 use std::f32::consts::FRAC_PI_2;
+
+lazy_static! {
+
+    static ref RED_MATERIAL: StandardMaterial = StandardMaterial {
+        base_color: LinearRgba::RED.into(),
+        unlit: true,
+        ..Default::default()
+    };
+
+    static ref GREEN_MATERIAL: StandardMaterial = StandardMaterial {
+        base_color: LinearRgba::GREEN.into(),
+        unlit: true,
+        ..Default::default()
+    };
+
+    static ref BLUE_MATERIAL: StandardMaterial = StandardMaterial {
+        base_color: LinearRgba::BLUE.into(),
+        unlit: true,
+        ..Default::default()
+    };
+
+    static ref YELLOW_MATERIAL: StandardMaterial = StandardMaterial {
+        base_color: LinearRgba::new(1.0, 1.0, 0.0, 1.0).into(),
+        unlit: true,
+        ..Default::default()
+    };
+}
+
+#[inline]
+fn make_cylinder_base(size: f32) -> CylinderMeshBuilder {
+    Cylinder {
+        radius: 0.005 * size,
+        half_height: 0.45 * size
+    }.mesh()
+    .resolution(32)
+    .segments(1)
+    .anchor(CylinderAnchor::Bottom)
+}
+
+#[inline]
+fn make_cone_head(size: f32) -> ConeMeshBuilder {
+    Cone {
+        radius: 0.05 * size,
+        height: 0.1 * size
+    }.mesh()
+    .resolution(32)
+    .anchor(ConeAnchor::Base)
+}
+
 
 // https://users.rust-lang.org/t/solved-placement-of-mut-in-function-parameters/19891
 pub fn spawn_axis_helper(
@@ -90,52 +139,4 @@ pub fn spawn_axis_helper(
     })
     // Returns the Entity to allow it to be added to another entity
     .id()
-}
-
-lazy_static! {
-
-    static ref RED_MATERIAL: StandardMaterial = StandardMaterial {
-        base_color: Srgba::RED.into(),
-        reflectance: 0.0,
-        ..Default::default()
-    };
-
-    static ref GREEN_MATERIAL: StandardMaterial = StandardMaterial {
-        base_color: Srgba::GREEN.into(),
-        reflectance: 0.0,
-        ..Default::default()
-    };
-
-    static ref BLUE_MATERIAL: StandardMaterial = StandardMaterial {
-        base_color: Srgba::BLUE.into(),
-        reflectance: 0.0,
-        ..Default::default()
-    };
-
-    static ref YELLOW_MATERIAL: StandardMaterial = StandardMaterial {
-        base_color: Srgba::new(1.0, 1.0, 0.0, 1.0).into(),
-        reflectance: 0.0,
-        ..Default::default()
-    };
-}
-
-#[inline]
-fn make_cylinder_base(size: f32) -> CylinderMeshBuilder {
-    Cylinder {
-        radius: 0.005 * size,
-        half_height: 0.45 * size
-    }.mesh()
-    .resolution(32)
-    .segments(1)
-    .anchor(CylinderAnchor::Bottom)
-}
-
-#[inline]
-fn make_cone_head(size: f32) -> ConeMeshBuilder {
-    Cone {
-        radius: 0.05 * size,
-        height: 0.1 * size
-    }.mesh()
-    .resolution(32)
-    .anchor(ConeAnchor::Base)
 }
