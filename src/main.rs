@@ -1,3 +1,4 @@
+mod constants;
 mod mesh;
 mod scene;
 
@@ -8,21 +9,86 @@ use scene::{
 
 use bevy::{
     prelude::*,
+    math::DVec3,
     render::mesh::ConeAnchor
 };
 use bevy_mod_picking::prelude::*;
-use lazy_static::lazy_static;
 use std::f32::consts::FRAC_PI_2;
 
-lazy_static!(
+use crate::constants::ENU_TO_NED_ROT;
 
-    static ref ENU_TO_NED_ROT: Quat = Quat::from_mat3(&Mat3 { // ENU -> NED rotation
-        x_axis: Vec3::Y,
-        y_axis: Vec3::X,
-        z_axis: -Vec3::Z
-    });
+// The internal state of the Carrier
+#[derive(Component)]
+pub struct CarrierState {
+    /// Carrier orientation in World frame (NED referential)
+    pub heading_deg: f64,
+    pub elevation_deg: f64,
+    pub bank_deg: f64,
+    ///
+    pub height_m: f64,
+    /// Carrier to Antenna phase center lever arms (in NED Carier frame)
+    pub lever_arms_m: DVec3,
 
-);
+    // pub position_m: f64
+}
+
+
+
+// The internal state of the Antenna
+#[derive(Component)]
+pub struct AntennaState {
+    /// Antenna orientation relative to Carrier
+    pub heading_deg: f64,
+    pub elevation_deg: f64,
+    pub bank_deg: f64,
+}
+
+// The internal state of the Antenna
+#[derive(Component)]
+pub struct AntennaBeamState {
+    /// Antenna 3d beam widths
+    pub elevation_beam_width_deg: f64,
+    pub azimuth_beam_width_deg: f64,
+}
+
+impl Default for CarrierState {
+    fn default() -> Self {
+        Self {
+            heading_deg: 0.0,
+            elevation_deg: 0.0,
+            bank_deg: 0.0,
+            height_m: 300.0,
+            lever_arms_m: DVec3::ZERO,
+        }
+    }
+}
+
+impl Default for AntennaState {
+    fn default() -> Self {
+        Self {
+            heading_deg: 90.0,
+            elevation_deg: -60.0,
+            bank_deg: 0.0,
+        }
+    }
+}
+
+impl Default for AntennaBeamState {
+    fn default() -> Self {
+        Self {
+            elevation_beam_width_deg: 18.0,
+            azimuth_beam_width_deg: 22.0
+        }
+    }
+}
+
+//
+#[derive(Component)]
+struct Tx;
+
+#[derive(Component)]
+struct Rx;
+
 
 //
 #[derive(Component)]
@@ -99,7 +165,8 @@ fn main() {
             (
                 init_tx_carrier_transform,
                 init_tx_antenna_transform,
-                init_tx_antenna_cone_opening
+                init_tx_antenna_cone_opening,
+                init_carrier
             )
         )
         .add_systems(Update, pan_orbit_camera.run_if(any_with_component::<PanOrbitState>))
@@ -119,9 +186,9 @@ fn setup_scene(
     spawn_world(&mut commands, &mut meshes, &mut materials);
 
     // Transmitter
-    let tx_carrier_ref = spawn_axis_helper(&mut commands, &mut meshes, &mut materials, 100.0);
-    let tx_antenna_ref = spawn_axis_helper(&mut commands, &mut meshes, &mut materials, 50.0);
-    let tx_antenna_cone = commands.spawn(
+    let tx_carrier = spawn_axis_helper(&mut commands, &mut meshes, &mut materials, 150.0);
+    let tx_antenna = spawn_axis_helper(&mut commands, &mut meshes, &mut materials, 100.0);
+    let tx_antenna_beam = commands.spawn(
         (
             PbrBundle {
                 mesh: meshes.add(Cone {
@@ -148,18 +215,66 @@ fn setup_scene(
     ).id();
 
     commands // Antenna cone is the child of tx_antenna_ref...
-        .entity(tx_antenna_ref)
+        .entity(tx_antenna)
         .insert(TxAntennaRefMarker) // Add a marker component to Tx Antenna entity
-        .add_child(tx_antenna_cone);
+        .add_child(tx_antenna_beam);
     commands // Which is the child of 
-        .entity(tx_carrier_ref)
+        .entity(tx_carrier)
         .insert(TxCarrierRefMarker) // Add a marker component to Tx Carrier entity
-        .add_child(tx_antenna_ref);
+        .add_child(tx_antenna);
 
+
+    // Transmitter
+    let rx_carrier = spawn_axis_helper(&mut commands, &mut meshes, &mut materials, 150.0);
+    let rx_antenna = spawn_axis_helper(&mut commands, &mut meshes, &mut materials, 100.0);
+    let rx_antenna_beam = commands.spawn(
+        (
+            PbrBundle {
+                mesh: meshes.add(Cone {
+                    radius: 1e6,
+                    height: 1e7
+                }.mesh()
+                .resolution(360)
+                .anchor(ConeAnchor::Tip)),
+                material: materials.add(
+                    StandardMaterial {
+                        base_color: Color::srgba(0.0, 0.0, 0.0, 0.3),
+                        alpha_mode: AlphaMode::Blend,
+                        unlit: true,
+                        ..Default::default()
+                    }
+                ),
+                transform: Transform::from_rotation(Quat::from_rotation_z(FRAC_PI_2)), // Cone along X-axis
+                ..Default::default()
+            },
+            AntennaBeamState::default()
+        )
+    ).id();
+    
+    commands
+        .entity(rx_antenna)
+        .insert(AntennaState::default())
+        .add_child(rx_antenna_beam);
+    commands
+        .entity(rx_carrier)
+        .insert(
+            CarrierState {
+                heading_deg: 90.0,
+                elevation_deg: 10.0,
+                ..Default::default()
+            }
+        )
+        .insert(Rx)
+        .add_child(rx_antenna);
 }
 
 
-fn init_tx_carrier_transform(mut query: Query<&mut Transform, With<TxCarrierRefMarker>>) {
+fn init_tx_carrier_transform(
+    mut query: Query<
+        &mut Transform,
+        With<TxCarrierRefMarker>
+    >
+) {
     let mut transform = query
         .get_single_mut()
         .expect("Can't get `TxCarrierRef` transform");
@@ -172,10 +287,10 @@ fn init_tx_antenna_transform(mut query: Query<&mut Transform, With<TxAntennaRefM
     let mut transform = query
         .get_single_mut()
         .expect("Can't get `TxCarrierRef` transform");
-    transform.translation = Vec3::new(0.0, 2.58, -0.53);
+    transform.translation = Vec3::new(0.0, 0.0, -0.0);
     transform.rotation = Quat::from_euler(
         EulerRot::ZYX,
-        90.0f32.to_radians(),  // Heading
+        45.0f32.to_radians(),  // Heading
         -60.0f32.to_radians(), // Elevation
         0.0                    // Bank
     );
@@ -193,4 +308,42 @@ fn init_tx_antenna_cone_opening(
         1.0,
         0.5  // Elevation aperture
     );
+}
+
+
+
+fn init_carrier(
+    mut query_carrier: Query<(&CarrierState, &mut Transform), With<Rx>>,
+    // mut query_antenna: Query<(&AntennaState, &mut Transform), With<Rx>>,
+    // mut query_antenna_beam: Query<(&AntennaBeamState, &mut Transform), With<Rx>>,
+) {
+    let (carrier, mut carrier_transform) = query_carrier.get_single_mut().expect("Can't get `Rx Carrier` transform");
+    // let (antenna, mut antenna_transform) = query_antenna.get_single_mut().expect("Can't get `Rx Antenna` transform");
+    // let (antenna_beam, mut antenna_beam_transform) = query_antenna_beam.get_single_mut().expect("Can't get `Rx Antenna` transform");
+
+    // Carrier transform
+    carrier_transform.translation = Vec3::new(0.0, 0.0, 3000.0);
+    carrier_transform.rotation = ENU_TO_NED_ROT.to_owned() * 
+        Quat::from_euler(
+            EulerRot::ZYX,
+            carrier.heading_deg.to_radians() as f32,
+            carrier.elevation_deg.to_radians() as f32,
+            carrier.bank_deg.to_radians() as f32
+    );
+
+    // // Antenna transform
+    // antenna_transform.translation = carrier.lever_arms_m.as_vec3();
+    // antenna_transform.rotation = Quat::from_euler(
+    //     EulerRot::ZYX,
+    //     antenna.heading_deg.to_radians() as f32,
+    //     antenna.elevation_deg.to_radians() as f32,
+    //     antenna.bank_deg.to_radians() as f32
+    // );
+
+    // // Antenna beam transform
+    // antenna_beam_transform.scale = Vec3::new(
+    //     1.0, // Azimuth aperture
+    //     1.0,
+    //     0.5  // Elevation aperture
+    // );
 }

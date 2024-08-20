@@ -1,6 +1,5 @@
 use bevy::{
     asset::Assets,
-    color::LinearRgba,
     ecs::prelude::Commands,
     math::{
         primitives::{Cone, Cylinder, Sphere},
@@ -10,35 +9,10 @@ use bevy::{
     prelude::{BuildChildren, Entity, Mesh, Meshable, PbrBundle, ResMut, Transform},
     render::mesh::{ConeAnchor, ConeMeshBuilder, CylinderAnchor, CylinderMeshBuilder}
 };
-use lazy_static::lazy_static;
+
 use std::f32::consts::FRAC_PI_2;
 
-lazy_static! {
-
-    static ref RED_MATERIAL: StandardMaterial = StandardMaterial {
-        base_color: LinearRgba::RED.into(),
-        unlit: true,
-        ..Default::default()
-    };
-
-    static ref GREEN_MATERIAL: StandardMaterial = StandardMaterial {
-        base_color: LinearRgba::GREEN.into(),
-        unlit: true,
-        ..Default::default()
-    };
-
-    static ref BLUE_MATERIAL: StandardMaterial = StandardMaterial {
-        base_color: LinearRgba::BLUE.into(),
-        unlit: true,
-        ..Default::default()
-    };
-
-    static ref YELLOW_MATERIAL: StandardMaterial = StandardMaterial {
-        base_color: LinearRgba::new(1.0, 1.0, 0.0, 1.0).into(),
-        unlit: true,
-        ..Default::default()
-    };
-}
+use crate::constants::{RED_MATERIAL, GREEN_MATERIAL, BLUE_MATERIAL, YELLOW_MATERIAL};
 
 #[inline]
 fn make_cylinder_base(size: f32) -> CylinderMeshBuilder {

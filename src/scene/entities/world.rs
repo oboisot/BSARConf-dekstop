@@ -1,6 +1,6 @@
 use bevy::{
     asset::Assets,
-    color::{Gray, LinearRgba},
+    color::LinearRgba,
     ecs::prelude::Commands,
     math::{
         primitives::Plane3d, Vec2, Vec3

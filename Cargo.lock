@@ -1159,15 +1159,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "bevy_test"
-version = "0.1.0"
-dependencies = [
- "bevy",
- "bevy_mod_picking",
- "lazy_static",
-]
-
-[[package]]
 name = "bevy_text"
 version = "0.14.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1407,6 +1398,15 @@ dependencies = [
  "futures-io",
  "futures-lite",
  "piper",
+]
+
+[[package]]
+name = "bsarconf"
+version = "0.1.0"
+dependencies = [
+ "bevy",
+ "bevy_mod_picking",
+ "lazy_static",
 ]
 
 [[package]]
