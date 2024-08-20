@@ -1,10 +1,9 @@
 use bevy::{
     asset::Assets,
-    color::LinearRgba,
+    color::{Gray, LinearRgba},
     ecs::prelude::Commands,
     math::{
-        primitives::Plane3d,
-        Vec3, Vec2
+        primitives::Plane3d, Vec2, Vec3
     },
     pbr::StandardMaterial,
     prelude::{BuildChildren, Entity, Mesh, Meshable, PbrBundle, ResMut, Transform}
@@ -36,8 +35,7 @@ pub fn spawn_world(
             ),
             material: materials.add(
                 StandardMaterial {
-                    base_color: LinearRgba::rgb(0.545098039, 0.537254902, 0.537254902).into(),
-                    // reflectance: 0.0,
+                    base_color: LinearRgba::rgb(0.1, 0.1, 0.1).into(),
                     unlit: true,
                     ..Default::default()
             }),
